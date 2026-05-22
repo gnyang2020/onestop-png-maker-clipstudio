@@ -2,8 +2,25 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>[쥐냥] 원스톱 PNG 뽑기</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>[쥐냥] 원스톱 PNG 메이커_클튜</title>
 <link rel="icon" type="image/png" href="favicon.png">
+
+<!-- PWA: 홈 화면에 추가하면 풀스크린 앱처럼 동작 -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="favicon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="원스톱png클튜">
+<meta name="theme-color" content="#fbbf24">
+
+<!-- 카카오톡·SNS 공유 미리보기 (OpenGraph) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="[쥐냥] 원스톱 PNG 메이커_클튜">
+<meta property="og:description" content="클립스튜디오용 - 가이드 PNG → 박스별 png 저장 + 오지큐 변환">
+<meta property="og:image" content="favicon.png">
+<meta property="og:locale" content="ko_KR">
 <style>
   * { box-sizing: border-box; }
   body {
@@ -12,7 +29,13 @@
     background: #f6f7f9; color: #1f2328;
   }
   h1 { font-size: 22px; margin: 0 0 6px; letter-spacing: -.5px; }
-  .sub { color: #6b7280; font-size: 13px; margin-bottom: 24px; }
+  .sub { color: #6b7280; font-size: 13px; margin-bottom: 8px; }
+  .edition-badge {
+    display: inline-block; margin-bottom: 18px;
+    background: #fef3c7; color: #92400e; border: 1px solid #fcd34d;
+    padding: 4px 12px; border-radius: 999px; font-size: 11px; font-weight: 700;
+    letter-spacing: .04em;
+  }
 
   .card {
     background: #fff; border-radius: 12px; padding: 20px 22px;
@@ -20,6 +43,8 @@
     margin-bottom: 16px;
   }
   .card h2 { font-size: 14px; margin: 0 0 14px; color: #374151; letter-spacing: .2px; }
+  .card h2 .req { color: #dc2626; font-size: 11px; margin-left: 6px; }
+  .card h2 .opt { color: #6b7280; font-size: 11px; margin-left: 6px; }
 
   .row { display: flex; align-items: center; gap: 14px; margin: 10px 0; flex-wrap: wrap; }
   .row label { min-width: 110px; font-size: 13px; color: #374151; }
@@ -32,59 +57,105 @@
   .chip:hover { border-color: #111827; }
   .chip.active { background: #111827; color: #fff; border-color: #111827; }
 
-  /* number input 스피너(증감 화살표) 항상 표시 */
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button {
     -webkit-appearance: inner-spin-button;
-    opacity: 1;
-    margin-left: 4px;
+    opacity: 1; margin-left: 4px;
   }
   input[type=number] { -moz-appearance: number-input; }
 
-  .card.notice { background: #fff5f7; border: 1px solid #fbcfe8; }
-  .card.notice h2 { color: #be185d; }
-  .notice-list { margin: 0; padding-left: 18px; color: #9d174d; font-size: 13px; line-height: 1.8; }
+  .card.notice { background: #fffbeb; border: 1px solid #fde68a; }
+  .card.notice h2 { color: #92400e; }
+  .notice-list { margin: 0; padding-left: 18px; color: #78350f; font-size: 13px; line-height: 1.8; }
   .notice-list li { margin: 2px 0; }
-  .notice-list strong { color: #500724; }
-  .notice-list code { background: #fce7f3; padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: "SF Mono", Menlo, monospace; color: #831843; }
+  .notice-list strong { color: #451a03; }
+  .notice-list code { background: #fef3c7; padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: "SF Mono", Menlo, monospace; color: #78350f; }
 
-  .drop {
-    border: 2px dashed #cbd5e1; border-radius: 12px; padding: 36px 20px; text-align: center;
-    background: #fafbfc; cursor: pointer; transition: .15s;
+  .slots-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
-  .drop:hover, .drop.over { border-color: #0ea5e9; background: #f0f9ff; }
-  .drop .ico { font-size: 32px; margin-bottom: 8px; }
-  .drop .hint { color: #6b7280; font-size: 13px; margin-top: 6px; }
-  .drop .name { color: #111827; font-weight: 600; margin-top: 8px; }
+  @media (min-width: 760px) {
+    .slots-grid { grid-template-columns: 1fr 1fr; }
+  }
 
-  button.primary {
-    background: #111827; color: #fff; border: 0; padding: 12px 22px;
-    border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;
+  .slot-card {
+    background: #fff; border-radius: 12px; padding: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    border: 2px solid transparent;
     transition: .15s;
   }
-  button.primary:hover { background: #1f2937; }
-  button.primary:disabled { background: #9ca3af; cursor: not-allowed; }
+  .slot-card.required { border-color: #fee2e2; }
+  .slot-card.filled { border-color: #a7f3d0; }
+  .slot-card.filled.required { border-color: #34d399; }
+  .slot-title {
+    font-size: 13px; font-weight: 700; color: #111827;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 10px;
+  }
+  .slot-title .badge {
+    font-size: 10px; padding: 2px 8px; border-radius: 999px; font-weight: 700;
+  }
+  .slot-title .badge.req { background: #fee2e2; color: #b91c1c; }
+  .slot-title .badge.opt { background: #f3f4f6; color: #6b7280; }
+  .slot-hint { font-size: 11px; color: #6b7280; margin-bottom: 10px; line-height: 1.5; }
 
-  button.ghost {
-    background: #fff; color: #374151; border: 1px solid #d1d5db; padding: 12px 20px;
+  .drop {
+    border: 2px dashed #cbd5e1; border-radius: 10px; padding: 24px 12px; text-align: center;
+    background: #fafbfc; cursor: pointer; transition: .15s;
+    min-height: 140px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; position: relative;
+  }
+  .drop:hover, .drop.over { border-color: #10b981; background: #f0fdf4; }
+  /* 카카오 슬롯은 노란색 호버 */
+  .drop[data-slot="kakao"]:hover, .drop[data-slot="kakao"].over {
+    border-color: #fbbf24; background: #fffbeb;
+  }
+  .drop.filled { border-style: solid; border-color: #10b981; background: #f0fdf4; padding: 12px; }
+  .drop .ico { font-size: 28px; }
+  .drop .ph { font-size: 12px; color: #6b7280; }
+  .drop .name { font-size: 11px; color: #111827; font-weight: 600; word-break: break-all; padding: 0 8px; }
+  .drop .thumb { max-width: 100%; max-height: 100px; border-radius: 6px; margin: 4px 0; image-rendering: pixelated; }
+  .drop .clear-btn {
+    position: absolute; top: 6px; right: 6px;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(0,0,0,.6); color: #fff; border: 0;
+    font-size: 11px; cursor: pointer; line-height: 1; padding: 0;
+    display: none;
+  }
+  .drop.filled .clear-btn { display: block; }
+  .drop.filled .clear-btn:hover { background: #dc2626; }
+
+  button.primary {
+    background: #5b21b6; color: #fff; border: 0; padding: 12px 22px;
     border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; transition: .15s;
   }
-  button.ghost:hover { border-color: #10b981; color: #10b981; }
-  button.ghost:disabled { color: #9ca3af; cursor: not-allowed; border-color: #e5e7eb; }
+  button.primary:hover { background: #6d28d9; }
+  button.primary:disabled { background: #9ca3af; cursor: not-allowed; }
+
+  /* 파스텔 톤 액션 버튼 — 카카오(노랑) / 오지큐(초록) */
+  button.primary.kakao-btn { background: #fef3c7; color: #92400e; }
+  button.primary.kakao-btn:hover:not(:disabled) { background: #fde68a; }
+  button.primary.ogq-btn { background: #d1fae5; color: #065f46; }
+  button.primary.ogq-btn:hover:not(:disabled) { background: #a7f3d0; }
+  button.primary.kakao-btn:disabled,
+  button.primary.ogq-btn:disabled {
+    background: #e5e7eb; color: #9ca3af; cursor: not-allowed;
+  }
 
   .progress { height: 6px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin: 12px 0 8px; }
-  .bar { height: 100%; background: linear-gradient(90deg, #10b981, #34d399); width: 0%; transition: .2s; }
-
-  .log {
-    background: #0b1020; color: #d1fae5; font-family: "SF Mono", Menlo, monospace;
-    padding: 14px 16px; border-radius: 10px; max-height: 280px; overflow-y: auto;
-    font-size: 12px; white-space: pre-wrap; line-height: 1.6;
-  }
-  .log .err { color: #fca5a5; }
-  .log .ok { color: #6ee7b7; }
-  .log .dim { color: #94a3b8; }
+  .bar { height: 100%; background: linear-gradient(90deg, #f59e0b, #fbbf24); width: 0%; transition: .2s; }
 
   .footer-actions { display: flex; justify-content: center; gap: 10px; margin: 18px 0 8px; flex-wrap: wrap; }
+  .footer-actions.twin-buttons {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .footer-actions.twin-buttons > button {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
 
   .stats { display: flex; gap: 16px; font-size: 13px; color: #4b5563; margin-bottom: 14px; flex-wrap: wrap; }
   .stats strong { color: #111827; font-weight: 700; }
@@ -102,7 +173,7 @@
     border: 1px solid #e5e7eb; border-radius: 6px; position: relative; overflow: hidden;
     aspect-ratio: 1 / 1; cursor: pointer; transition: .15s;
   }
-  .cell:hover { border-color: #10b981; transform: translateY(-1px); }
+  .cell:hover { border-color: #f59e0b; transform: translateY(-1px); }
   .cell img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .cell .num {
     position: absolute; top: 4px; left: 4px;
@@ -114,85 +185,171 @@
   .cell.empty .num { background: rgba(220, 38, 38, .8); }
 
   .site-footer {
-    margin-top: 32px;
-    padding: 16px 12px;
-    font-size: 11px;
-    color: #999;
-    text-align: center;
-    letter-spacing: 0.04em;
+    margin-top: 32px; padding: 16px 12px;
+    font-size: 11px; color: #999; text-align: center; letter-spacing: 0.04em;
+  }
+
+  /* 결과 탭 — 알약 형태 둥근 버튼 */
+  .result-tabs {
+    display: flex; gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  /* 탭 옆 OGQ ZIP 다운로드 버튼 */
+  .result-tabs .download-inline {
+    margin-left: auto;
+    padding: 8px 16px;
+    border-radius: 999px;
+    border: 0;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: .15s;
+    background: #d1fae5;
+    color: #065f46;
+  }
+  .result-tabs .download-inline:hover:not(:disabled) { background: #a7f3d0; }
+  .result-tabs .download-inline:disabled {
+    background: #e5e7eb; color: #9ca3af; cursor: not-allowed;
+  }
+  .tab-btn {
+    padding: 8px 16px; border: 1px solid #e5e7eb; background: #fff;
+    font-size: 13px; font-weight: 600; color: #6b7280; cursor: pointer;
+    border-radius: 999px;
+    transition: .15s;
+  }
+  .tab-btn:hover { color: #111827; background: #f9fafb; }
+  .tab-btn[data-tab="kakao"].active {
+    background: #fef9c3; color: #854d0e; border-color: #facc15;
+  }
+  .tab-btn[data-tab="ogq"].active {
+    background: #d1fae5; color: #065f46; border-color: #34d399;
+  }
+  .tab-pane { animation: fadeIn .2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .grid-preview.ogq .cell { aspect-ratio: 740 / 640; }
+
+  .empty-tab-msg {
+    color: #6b7280; font-size: 13px; padding: 32px 12px; text-align: center;
+    background: #f9fafb; border-radius: 8px; line-height: 1.6;
   }
 
   @media (max-width: 640px) {
     body { padding: 22px 14px; }
     h1 { font-size: 19px; }
     .card { padding: 16px 16px; }
-    .drop { padding: 28px 14px; }
-    button.primary, button.ghost { width: 100%; }
+    button.primary { width: 100%; }
     .footer-actions { flex-direction: column; }
+    .footer-actions.twin-buttons { flex-direction: row; }
   }
 </style>
 </head>
 <body>
 
-<h1>[쥐냥] 원스톱 PNG 뽑기</h1>
-<div class="sub">클립스튜디오·프로크리에이트 원스톱 가이드 PNG → 박스별 투명 PNG 36장 → ZIP 자동 묶음</div>
+<h1>[쥐냥] 원스톱 PNG 메이커_클튜</h1>
+<div class="sub">클립스튜디오용 - 가이드 PNG 2장 (카카오/오지큐) → 박스별 png 저장</div>
+<span class="edition-badge">🎨 CLIP STUDIO EDITION</span>
+
+<div class="card notice">
+  <h2>📝 사용 방법</h2>
+  <ul class="notice-list">
+    <li><strong>가이드와 필요없는 레이어 눈은 반드시 꺼주세요.</strong></li>
+    <li><strong>카카오용 PNG</strong>: CSP "경계 효과"로 글자에 테두리 적용한 버전</li>
+    <li><strong>오지큐용 PNG</strong>: CSP "경계 효과"로 전체에 테두리 적용한 버전 (오지큐 변환 시에만 필요)</li>
+    <li>두 PNG는 <strong>같은 캔버스 크기</strong>여야 박스 위치가 일치 (권장 <code>2700 × 2700</code>)</li>
+  </ul>
+</div>
 
 <div class="card">
   <h2>⚙️ 설정</h2>
-
   <div class="row">
     <label>추출 개수</label>
     <span class="chip" data-count="24">24</span>
-    <span class="chip" data-count="32">32</span>
-    <span class="chip active" data-count="36">36</span>
-    <input type="number" id="count" value="36" min="1" max="36"
+    <span class="chip active" data-count="32">32</span>
+    <span class="chip" data-count="36">36</span>
+    <input type="number" id="count" value="32" min="1" max="36"
            style="width:80px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-variant-numeric:tabular-nums">
     <span style="color:#6b7280;font-size:12px">개 (좌→우, 위→아래)</span>
   </div>
-
   <div class="row">
     <label>ZIP 파일명</label>
-    <input type="text" id="zipName" placeholder="비워두면 자동: 파일이름_원스톱"
+    <input type="text" id="zipName" placeholder="비워두면 자동: 카카오 PNG 파일명"
            style="flex:1;min-width:240px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px">
     <span style="color:#6b7280;font-size:12px">.zip 자동</span>
   </div>
 </div>
 
-<div class="card notice">
-  <h2>⚠️ 사용 전 체크</h2>
-  <ul class="notice-list">
-    <li><strong>가이드 레이어 눈을 끄고</strong> PNG로 저장하세요 — 클튜는 <code>파일 → 내보내기 → .png</code>, 프크는 <code>공유 → PNG</code></li>
-    <li><strong>눈이 켜진 레이어는 모두 결과에 보입니다</strong> — 보이게 하고 싶지 않은 레이어는 눈을 꺼주세요</li>
-    <li>권장 캔버스: <code>2700 × 2700</code> (다른 크기여도 가로/세로 비율 맞으면 자동 스케일)</li>
-    <li><strong>불투명도·블렌드 모드·마스크 모두 안전</strong> — CSP/프크가 PNG 저장 시 픽셀로 굳혀서 내보내므로 화면에 보이는 그대로 잘립니다</li>
-  </ul>
-</div>
+<div class="slots-grid">
+  <div class="slot-card" data-slot="kakao">
+    <div class="slot-title">
+      카카오용 PNG
+      <span class="badge opt">선택</span>
+    </div>
+    <div class="slot-hint">CSP에서 글자에 경계 효과 적용한 PNG</div>
+    <div class="drop" data-slot="kakao">
+      <button class="clear-btn" title="지우기">✕</button>
+      <div class="ico">⭐</div>
+      <div class="ph">PNG 드롭 또는 클릭</div>
+      <input type="file" accept=".png,image/png" style="display:none">
+    </div>
+  </div>
 
-<div class="card">
-  <h2>📂 PNG 파일</h2>
-  <div class="drop" id="drop">
-    <div class="ico">🖼️</div>
-    <div>여기에 <strong>PNG 파일</strong>을 드래그하거나 클릭해서 선택하세요</div>
-    <div class="hint">가이드 레이어 끈 채 저장한 2700×2700 PNG 권장</div>
-    <div class="name" id="fileName"></div>
-    <input type="file" id="pngFile" accept=".png,image/png" style="display:none">
+  <div class="slot-card" data-slot="ogq">
+    <div class="slot-title">
+      오지큐용 PNG
+      <span class="badge opt">선택</span>
+    </div>
+    <div class="slot-hint">CSP에서 전체에 경계 효과 적용한 PNG</div>
+    <div class="drop" data-slot="ogq">
+      <button class="clear-btn" title="지우기">✕</button>
+      <div class="ico">☘️</div>
+      <div class="ph">PNG 드롭 또는 클릭</div>
+      <input type="file" accept=".png,image/png" style="display:none">
+    </div>
   </div>
 </div>
 
-<div class="footer-actions">
-  <button class="primary" id="generate" disabled>🚀 PNG + ZIP 생성</button>
+<div class="footer-actions twin-buttons">
+  <button class="primary kakao-btn" id="generate" disabled>🚀 PNG 추출</button>
+  <button class="primary kakao-btn" id="downloadKakao" disabled>💾 카카오 ZIP 저장</button>
 </div>
 
 <div class="progress"><div class="bar" id="bar"></div></div>
 
 <div class="card" id="resultCard" style="display:none">
   <h2>🖼️ 추출 결과</h2>
-  <div class="stats" id="stats"></div>
-  <div class="grid-preview" id="grid"></div>
-  <div style="color:#6b7280;font-size:12px;margin-top:12px">셀을 클릭하면 해당 PNG만 단독 다운로드됩니다.</div>
-</div>
 
-<div class="log" id="log"><span class="dim">로그가 여기에 표시됩니다…</span>
+  <div class="result-tabs">
+    <button class="tab-btn active" data-tab="kakao">카카오 (360×360)</button>
+    <button class="tab-btn" data-tab="ogq">오지큐 (740×640)</button>
+    <button class="download-inline" id="downloadOgq" disabled>💾 오지큐 ZIP 저장</button>
+  </div>
+
+  <!-- 카카오 탭 -->
+  <div class="tab-pane active" id="tab-kakao">
+    <div id="kakaoEmpty" class="empty-tab-msg" style="display:none">
+      카카오용 PNG를 업로드해 주세요.
+    </div>
+    <div id="kakaoContent">
+      <div class="stats" id="stats"></div>
+      <div class="grid-preview" id="grid"></div>
+      <div style="color:#6b7280;font-size:12px;margin-top:12px">셀을 클릭하면 해당 PNG만 단독 다운로드됩니다.</div>
+    </div>
+  </div>
+
+  <!-- 오지큐 탭 -->
+  <div class="tab-pane" id="tab-ogq" style="display:none">
+    <div id="ogqEmpty" class="empty-tab-msg" style="display:none">
+      오지큐용 PNG 슬롯이 비어있어요.<br>
+      CSP에서 전체에 경계 효과 적용한 PNG를 업로드 후 다시 추출해주세요.
+    </div>
+    <div id="ogqContent" style="display:none">
+      <div class="stats" id="ogqStats"></div>
+      <div class="grid-preview" id="ogqGrid"></div>
+    </div>
+  </div>
 </div>
 
 <footer class="site-footer">
@@ -203,15 +360,7 @@
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
 <script>
-const $ = (id) => document.getElementById(id);
-const logEl = $('log');
-const barEl = $('bar');
-const gridEl = $('grid');
-const statsEl = $('stats');
-const resultCardEl = $('resultCard');
-
-// ===== 하드코딩 프리셋 (진영님 원스톱 가이드 PSD에서 추출) =====
-// 2700×2700 캔버스, 6×6=36칸, 각 박스 정확히 360×360
+// ===== 진영님 원스톱 가이드 좌표 (PSD에서 추출, 6×6=36칸 360×360) =====
 const ACTIVE_PRESET = {
   name: "원스톱 36칸 (6×6)",
   canvas: { w: 2700, h: 2700 },
@@ -227,23 +376,150 @@ const ACTIVE_PRESET = {
   ],
 };
 
-let imgBitmap = null;
+const OGQ = { w: 740, h: 640, scaleTo: 640 };
+
+const $ = (id) => document.getElementById(id);
+const barEl = $('bar');
+const gridEl = $('grid');
+const statsEl = $('stats');
+const resultCardEl = $('resultCard');
+
+// 2개 슬롯 상태
+const slots = {
+  kakao: { bitmap: null, fileName: '', card: null, drop: null, input: null },
+  ogq:   { bitmap: null, fileName: '', card: null, drop: null, input: null },
+};
+
 let extractedPngs = [];
-let baseFileName = '';
+let ogqResults = [];
 
 function log(msg, cls = '') {
-  const line = document.createElement('div');
-  if (cls) line.className = cls;
-  line.textContent = msg;
-  logEl.appendChild(line);
-  logEl.scrollTop = logEl.scrollHeight;
+  if (cls === 'err') {
+    console.error(msg);
+    alert(msg.replace(/^\n+/, '').replace(/^[❌⚠️]\s*/, ''));
+  } else {
+    console.log(msg);
+  }
 }
-function clearLog() { logEl.innerHTML = ''; }
 function setProgress(p) { barEl.style.width = (p * 100) + '%'; }
 
-// ===== 추출 개수 칩 ↔ input 동기화 =====
+// ===== 슬롯 초기화 =====
+function initSlot(slotName) {
+  const slot = slots[slotName];
+  slot.card = document.querySelector(`.slot-card[data-slot="${slotName}"]`);
+  slot.drop = document.querySelector(`.drop[data-slot="${slotName}"]`);
+  slot.input = slot.drop.querySelector('input[type=file]');
+
+  slot.drop.addEventListener('click', (e) => {
+    if (e.target.classList.contains('clear-btn')) return;
+    slot.input.click();
+  });
+  slot.drop.addEventListener('dragover', e => { e.preventDefault(); slot.drop.classList.add('over'); });
+  slot.drop.addEventListener('dragleave', () => slot.drop.classList.remove('over'));
+  slot.drop.addEventListener('drop', e => {
+    e.preventDefault(); slot.drop.classList.remove('over');
+    if (e.dataTransfer.files[0]) loadSlot(slotName, e.dataTransfer.files[0]);
+  });
+  slot.input.addEventListener('change', e => {
+    if (e.target.files[0]) loadSlot(slotName, e.target.files[0]);
+  });
+  slot.drop.querySelector('.clear-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearSlot(slotName);
+  });
+}
+Object.keys(slots).forEach(initSlot);
+
+function slotLabel(name) {
+  return ({ kakao: '카카오용', ogq: '오지큐용' })[name];
+}
+
+async function loadSlot(slotName, file) {
+  const slot = slots[slotName];
+  if (!/\.png$/i.test(file.name) && file.type !== 'image/png') {
+    log(`❌ [${slotLabel(slotName)}] PNG만 가능: ${file.name}`, 'err');
+    return;
+  }
+
+  try {
+    const bitmap = await createImageBitmap(file);
+
+    // 캔버스 크기 검증 (다른 슬롯과 일치하는지)
+    const others = Object.keys(slots).filter(k => k !== slotName && slots[k].bitmap);
+    for (const k of others) {
+      const ob = slots[k].bitmap;
+      if (ob.width !== bitmap.width || ob.height !== bitmap.height) {
+        log(`❌ [${slotLabel(slotName)}] 크기 불일치: ${bitmap.width}×${bitmap.height} (다른 슬롯은 ${ob.width}×${ob.height})`, 'err');
+        return;
+      }
+    }
+
+    slot.bitmap = bitmap;
+    slot.fileName = file.name.replace(/\.png$/i, '');
+    slot.drop.classList.add('filled');
+
+    // 썸네일
+    const ph = slot.drop.querySelector('.ph');
+    const ico = slot.drop.querySelector('.ico');
+    const existingThumb = slot.drop.querySelector('.thumb');
+    const existingName = slot.drop.querySelector('.name');
+    if (existingThumb) existingThumb.remove();
+    if (existingName) existingName.remove();
+    if (ph) ph.style.display = 'none';
+    if (ico) ico.style.display = 'none';
+
+    const thumbCanvas = document.createElement('canvas');
+    const tSize = 120;
+    thumbCanvas.width = tSize;
+    thumbCanvas.height = tSize;
+    thumbCanvas.className = 'thumb';
+    const tctx = thumbCanvas.getContext('2d');
+    const scale = tSize / Math.max(bitmap.width, bitmap.height);
+    const tw = bitmap.width * scale;
+    const th = bitmap.height * scale;
+    tctx.drawImage(bitmap, (tSize-tw)/2, (tSize-th)/2, tw, th);
+    slot.drop.insertBefore(thumbCanvas, slot.drop.querySelector('input'));
+
+    const nameDiv = document.createElement('div');
+    nameDiv.className = 'name';
+    nameDiv.textContent = file.name;
+    slot.drop.insertBefore(nameDiv, slot.drop.querySelector('input'));
+
+    console.log(`✅ [${slotLabel(slotName)}] 로드: ${file.name} (${bitmap.width}×${bitmap.height})`);
+    updateGenerateButton();
+  } catch (e) {
+    log(`❌ [${slotLabel(slotName)}] 로드 실패: ${e.message}`, 'err');
+    console.error(e);
+  }
+}
+
+function clearSlot(slotName) {
+  const slot = slots[slotName];
+  slot.bitmap = null;
+  slot.fileName = '';
+  slot.drop.classList.remove('filled');
+  slot.input.value = '';
+
+  const thumb = slot.drop.querySelector('.thumb');
+  const name = slot.drop.querySelector('.name');
+  const ph = slot.drop.querySelector('.ph');
+  const ico = slot.drop.querySelector('.ico');
+  if (thumb) thumb.remove();
+  if (name) name.remove();
+  if (ph) ph.style.display = '';
+  if (ico) ico.style.display = '';
+
+  updateGenerateButton();
+}
+
+function updateGenerateButton() {
+  // 카카오 슬롯이 채워졌으면 추출 가능 (오지큐만 있어도 추출은 가능하게 하려면 OR 조건)
+  $('generate').disabled = !slots.kakao.bitmap && !slots.ogq.bitmap;
+}
+
+// ===== 추출 개수 칩 =====
 const countInput = $('count');
-function syncChips() {
+function syncCountChips() {
   document.querySelectorAll('.chip[data-count]').forEach(c => {
     c.classList.toggle('active', c.dataset.count === countInput.value);
   });
@@ -251,152 +527,131 @@ function syncChips() {
 document.querySelectorAll('.chip[data-count]').forEach(chip => {
   chip.addEventListener('click', () => {
     countInput.value = chip.dataset.count;
-    syncChips();
+    syncCountChips();
   });
 });
-countInput.addEventListener('input', syncChips);
+countInput.addEventListener('input', syncCountChips);
 
-// ===== 드래그&드롭 =====
-const drop = $('drop');
-drop.addEventListener('click', () => $('pngFile').click());
-drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
-drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-drop.addEventListener('drop', e => {
-  e.preventDefault(); drop.classList.remove('over');
-  if (e.dataTransfer.files[0]) loadPng(e.dataTransfer.files[0]);
-});
-$('pngFile').addEventListener('change', e => {
-  if (e.target.files[0]) loadPng(e.target.files[0]);
-});
-
-// ===== PNG 로드 (프리셋 좌표 사용) =====
-async function loadPng(file) {
-  clearLog();
-  resultCardEl.style.display = 'none';
-  gridEl.innerHTML = '';
-  extractedPngs = [];
-  imgBitmap = null;
-  $('generate').disabled = true;
-  setProgress(0);
-
-  if (!/\.png$/i.test(file.name) && file.type !== 'image/png') {
-    log(`❌ PNG 파일만 가능합니다: ${file.name}`, 'err');
-    return;
-  }
-
-  baseFileName = file.name.replace(/\.png$/i, '');
-  $('fileName').textContent = file.name;
-  if (!$('zipName').value) $('zipName').value = `${baseFileName}_원스톱`;
-  log(`📂 파일 로딩: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`);
-
-  try {
-    imgBitmap = await createImageBitmap(file);
-    log(`✅ PNG 로드 완료: ${imgBitmap.width}×${imgBitmap.height}`, 'ok');
-
-    const expW = ACTIVE_PRESET.canvas.w;
-    const expH = ACTIVE_PRESET.canvas.h;
-    if (imgBitmap.width !== expW || imgBitmap.height !== expH) {
-      const ratioW = imgBitmap.width / expW;
-      const ratioH = imgBitmap.height / expH;
-      const aspectOK = Math.abs(ratioW - ratioH) < 0.01;
-      if (aspectOK) {
-        log(`   ⚠️ 프리셋(${expW}×${expH})과 크기 다름 — ${(ratioW*100).toFixed(1)}% 스케일 자동 적용`, 'err');
-      } else {
-        log(`   ❌ 가로/세로 비율이 프리셋과 다릅니다. 프리셋: ${expW}×${expH}, 입력: ${imgBitmap.width}×${imgBitmap.height}`, 'err');
-        throw new Error('비율 불일치');
-      }
-    } else {
-      log(`   ✓ 프리셋 크기 일치 (${expW}×${expH})`, 'ok');
-    }
-    log(`   ✓ 프리셋: ${ACTIVE_PRESET.name} — ${ACTIVE_PRESET.coords.length}칸 ${ACTIVE_PRESET.size}×${ACTIVE_PRESET.size}`, 'ok');
-
-    $('generate').disabled = false;
-    log(`\n👉 "PNG + ZIP 생성" 버튼을 누르면 시작합니다.`, 'ok');
-  } catch (e) {
-    log(`❌ PNG 로드 실패: ${e.message}`, 'err');
-    console.error(e);
-  }
-}
-
-// ===== 메인: 박스별 crop + ZIP =====
+// ===== 메인 추출: 두 슬롯에서 각각 36칸 자르기 =====
 $('generate').addEventListener('click', async () => {
-  if (!imgBitmap) return;
+  if (!slots.kakao.bitmap && !slots.ogq.bitmap) return;
   $('generate').disabled = true;
+  $('downloadKakao').disabled = true;
+  $('downloadOgq').disabled = true;
   resultCardEl.style.display = 'none';
   gridEl.innerHTML = '';
+  $('ogqGrid').innerHTML = '';
   extractedPngs = [];
+  ogqResults = [];
   setProgress(0);
 
   try {
-    const inW = imgBitmap.width, inH = imgBitmap.height;
-    const ratioW = inW / ACTIVE_PRESET.canvas.w;
-    const ratioH = inH / ACTIVE_PRESET.canvas.h;
-    const outSize = Math.round(ACTIVE_PRESET.size * ratioW);
-
-    log(`\n📐 프리셋: ${ACTIVE_PRESET.name}`);
-    log(`   캔버스: ${ACTIVE_PRESET.canvas.w}×${ACTIVE_PRESET.canvas.h} → 입력: ${inW}×${inH} (스케일 ${(ratioW*100).toFixed(2)}%)`, 'dim');
-    log(`   출력 크기: ${outSize}×${outSize} (원본 ${ACTIVE_PRESET.size}×${ACTIVE_PRESET.size} 기준)`, 'dim');
-
     const requestedCount = Math.max(1, parseInt(countInput.value) || 36);
     const totalBoxes = ACTIVE_PRESET.coords.length;
     const targetCount = Math.min(requestedCount, totalBoxes);
-    if (requestedCount > totalBoxes) {
-      log(`   ⚠️ 요청 ${requestedCount}개지만 프리셋이 ${totalBoxes}개라 ${targetCount}개만 추출`, 'err');
-    } else {
-      log(`   ✓ 추출 개수: ${targetCount}개 (전체 ${totalBoxes}개 중 처음 ${targetCount}개)`, 'ok');
+
+    setProgress(0.05);
+
+    // 1) 카카오 슬롯 처리
+    if (slots.kakao.bitmap) {
+      await cropFromSlot('kakao', targetCount, 0.05, 0.5);
     }
-    setProgress(0.15);
 
-    log(`\n✂️  박스별 crop 시작…`);
-    let nonempty = 0, empty = 0;
-    for (let i = 0; i < targetCount; i++) {
-      const coord = ACTIVE_PRESET.coords[i];
-      const sx = Math.round(coord.x * ratioW);
-      const sy = Math.round(coord.y * ratioH);
-      const sw = Math.round(ACTIVE_PRESET.size * ratioW);
-      const sh = Math.round(ACTIVE_PRESET.size * ratioH);
-
-      const c = document.createElement('canvas');
-      c.width = sw; c.height = sh;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(imgBitmap, sx, sy, sw, sh, 0, 0, sw, sh);
-
-      const isEmpty = isCanvasEmpty(c);
-      if (isEmpty) empty++; else nonempty++;
-
-      const num = String(i+1).padStart(2, '0');
-      const safeBase = (baseFileName || 'onestop').replace(/[\/\\:*?"<>|]/g, '_');
-      const name = `${safeBase}_${num}.png`;
-      const blob = await canvasToBlob(c);
-      const dataUrl = c.toDataURL('image/png');
-      extractedPngs.push({ name, blob, dataUrl, isEmpty });
-
-      setProgress(0.15 + (i+1)/targetCount * 0.65);
+    // 2) 오지큐 슬롯 처리 (있으면)
+    if (slots.ogq.bitmap) {
+      await cropAndScaleOGQ(targetCount, 0.5, 0.95);
     }
-    log(`   ✓ 완료: 그림 있음 ${nonempty}개 / 빈 박스 ${empty}개`, 'ok');
-    setProgress(0.8);
 
-    showResults(ACTIVE_PRESET.grid.rows, ACTIVE_PRESET.grid.cols, [ACTIVE_PRESET.size, ACTIVE_PRESET.size]);
-
-    log(`\n📦 ZIP 묶는 중…`);
-    let zipName = ($('zipName').value || `${baseFileName}_원스톱`).trim();
-    zipName = zipName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
-    const zip = new JSZip();
-    extractedPngs.forEach(p => zip.file(p.name, p.blob));
-    const zipBlob = await zip.generateAsync({ type: 'blob' }, meta => {
-      setProgress(0.8 + (meta.percent / 100) * 0.2);
-    });
-    saveAs(zipBlob, `${zipName}.zip`);
+    showResults();
     setProgress(1);
-    log(`\n🎉 완료! ${zipName}.zip 다운로드`, 'ok');
+
+    $('downloadKakao').disabled = !extractedPngs.length;
+    $('downloadOgq').disabled = !ogqResults.length;
   } catch (e) {
-    log(`\n❌ 오류: ${e.message}`, 'err');
+    log(`❌ 오류: ${e.message}`, 'err');
     console.error(e);
     setProgress(0);
   } finally {
-    $('generate').disabled = false;
+    $('generate').disabled = !slots.kakao.bitmap && !slots.ogq.bitmap;
   }
 });
+
+async function cropFromSlot(slotName, targetCount, progStart, progEnd) {
+  const slot = slots[slotName];
+  const img = slot.bitmap;
+  const W = img.width, H = img.height;
+  const ratioW = W / ACTIVE_PRESET.canvas.w;
+  const ratioH = H / ACTIVE_PRESET.canvas.h;
+  const safeBase = (slot.fileName || 'onestop').replace(/[\/\\:*?"<>|]/g, '_');
+
+  for (let i = 0; i < targetCount; i++) {
+    const coord = ACTIVE_PRESET.coords[i];
+    const sx = Math.round(coord.x * ratioW);
+    const sy = Math.round(coord.y * ratioH);
+    const sw = Math.round(ACTIVE_PRESET.size * ratioW);
+    const sh = Math.round(ACTIVE_PRESET.size * ratioH);
+
+    const c = document.createElement('canvas');
+    c.width = sw; c.height = sh;
+    c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    const isEmpty = isCanvasEmpty(c);
+    const num = String(i+1).padStart(2, '0');
+    const name = `${safeBase}_${num}.png`;
+    const blob = await canvasToBlob(c);
+    const dataUrl = c.toDataURL('image/png');
+    extractedPngs.push({ name, blob, dataUrl, isEmpty, canvas: c });
+
+    setProgress(progStart + (i+1)/targetCount * (progEnd - progStart));
+  }
+}
+
+async function cropAndScaleOGQ(targetCount, progStart, progEnd) {
+  const slot = slots.ogq;
+  const img = slot.bitmap;
+  const W = img.width, H = img.height;
+  const ratioW = W / ACTIVE_PRESET.canvas.w;
+  const ratioH = H / ACTIVE_PRESET.canvas.h;
+  const safeBase = (slot.fileName || 'onestop').replace(/[\/\\:*?"<>|]/g, '_');
+
+  for (let i = 0; i < targetCount; i++) {
+    const coord = ACTIVE_PRESET.coords[i];
+    const sx = Math.round(coord.x * ratioW);
+    const sy = Math.round(coord.y * ratioH);
+    const sw = Math.round(ACTIVE_PRESET.size * ratioW);
+    const sh = Math.round(ACTIVE_PRESET.size * ratioH);
+
+    // 1) 박스 crop
+    const cropped = document.createElement('canvas');
+    cropped.width = sw; cropped.height = sh;
+    cropped.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+
+    const isEmpty = isCanvasEmpty(cropped);
+
+    // 2) 640×640 업스케일
+    const scaled = document.createElement('canvas');
+    scaled.width = OGQ.scaleTo; scaled.height = OGQ.scaleTo;
+    const sctx = scaled.getContext('2d');
+    sctx.imageSmoothingEnabled = true;
+    sctx.imageSmoothingQuality = 'high';
+    sctx.drawImage(cropped, 0, 0, OGQ.scaleTo, OGQ.scaleTo);
+
+    // 3) 740×640 캔버스 가운데 배치
+    const out = document.createElement('canvas');
+    out.width = OGQ.w; out.height = OGQ.h;
+    const octx = out.getContext('2d');
+    const dx = Math.round((OGQ.w - OGQ.scaleTo) / 2);
+    octx.drawImage(scaled, dx, 0);
+
+    const num = String(i+1).padStart(2, '0');
+    const name = `${safeBase}_${num}_오지큐.png`;
+    const blob = await canvasToBlob(out);
+    const dataUrl = out.toDataURL('image/png');
+    ogqResults.push({ name, blob, dataUrl, isEmpty });
+
+    setProgress(progStart + (i+1)/targetCount * (progEnd - progStart));
+  }
+}
 
 function canvasToBlob(canvas) {
   return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
@@ -410,26 +665,101 @@ function isCanvasEmpty(canvas) {
   return true;
 }
 
-function showResults(rows, cols, size) {
-  statsEl.innerHTML = `
-    <span>📦 <strong>${extractedPngs.length}장</strong> 추출</span>
-    <span>📏 <strong>${size[0]} × ${size[1]} px</strong></span>
-    <span>📐 <strong>${rows}행 × ${cols}열</strong></span>
-    <span>✨ 그림 <strong>${extractedPngs.filter(p => !p.isEmpty).length}</strong> / 빈 박스 <strong>${extractedPngs.filter(p => p.isEmpty).length}</strong></span>
-  `;
-  gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-  gridEl.innerHTML = '';
-  extractedPngs.forEach((p, i) => {
-    const cell = document.createElement('div');
-    cell.className = 'cell' + (p.isEmpty ? ' empty' : '');
-    cell.title = `${p.name}\n클릭하면 단독 다운로드`;
-    cell.innerHTML = `<img src="${p.dataUrl}" alt="${p.name}"><span class="num">${String(i+1).padStart(2,'0')}</span>`;
-    cell.addEventListener('click', () => saveAs(p.blob, p.name));
-    gridEl.appendChild(cell);
-  });
+// ===== 결과 표시 =====
+function showResults() {
   resultCardEl.style.display = 'block';
+
+  // 카카오 탭
+  if (extractedPngs.length) {
+    $('kakaoEmpty').style.display = 'none';
+    $('kakaoContent').style.display = '';
+    statsEl.innerHTML = `
+      <span>📦 <strong>${extractedPngs.length}장</strong> 추출</span>
+      <span>📏 <strong>${ACTIVE_PRESET.size} × ${ACTIVE_PRESET.size} px</strong></span>
+      <span>📐 <strong>${ACTIVE_PRESET.grid.rows}행 × ${ACTIVE_PRESET.grid.cols}열</strong></span>
+      <span>✨ 그림 <strong>${extractedPngs.filter(p => !p.isEmpty).length}</strong> / 빈 박스 <strong>${extractedPngs.filter(p => p.isEmpty).length}</strong></span>
+    `;
+    gridEl.style.gridTemplateColumns = `repeat(${ACTIVE_PRESET.grid.cols}, 1fr)`;
+    gridEl.innerHTML = '';
+    extractedPngs.forEach((p, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (p.isEmpty ? ' empty' : '');
+      cell.title = `${p.name}\n클릭하면 단독 다운로드`;
+      cell.innerHTML = `<img src="${p.dataUrl}" alt="${p.name}"><span class="num">${String(i+1).padStart(2,'0')}</span>`;
+      cell.addEventListener('click', () => saveAs(p.blob, p.name));
+      gridEl.appendChild(cell);
+    });
+  } else {
+    $('kakaoEmpty').style.display = '';
+    $('kakaoContent').style.display = 'none';
+  }
+
+  // 오지큐 탭
+  const ogqContent = $('ogqContent');
+  const ogqEmpty = $('ogqEmpty');
+  const ogqGrid = $('ogqGrid');
+  if (ogqResults.length) {
+    ogqEmpty.style.display = 'none';
+    ogqContent.style.display = '';
+    $('ogqStats').innerHTML = `
+      <span>📦 <strong>${ogqResults.length}장</strong> 변환</span>
+      <span>📏 <strong>${OGQ.w} × ${OGQ.h} px</strong></span>
+      <span>✨ 그림 <strong>${ogqResults.filter(p => !p.isEmpty).length}</strong> / 빈 박스 <strong>${ogqResults.filter(p => p.isEmpty).length}</strong></span>
+    `;
+    ogqGrid.className = 'grid-preview ogq';
+    ogqGrid.style.gridTemplateColumns = `repeat(${ACTIVE_PRESET.grid.cols}, 1fr)`;
+    ogqGrid.innerHTML = '';
+    ogqResults.forEach((p, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (p.isEmpty ? ' empty' : '');
+      cell.title = `${p.name}\n클릭하면 단독 다운로드`;
+      cell.innerHTML = `<img src="${p.dataUrl}" alt="${p.name}"><span class="num">${String(i+1).padStart(2,'0')}</span>`;
+      cell.addEventListener('click', () => saveAs(p.blob, p.name));
+      ogqGrid.appendChild(cell);
+    });
+  } else {
+    ogqEmpty.style.display = '';
+    ogqContent.style.display = 'none';
+  }
+
+  // 카카오에 결과가 있으면 카카오 탭 시작, 없으면 오지큐 탭 시작
+  switchTab(extractedPngs.length ? 'kakao' : 'ogq');
 }
 
+// ===== 탭 전환 =====
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === name);
+  });
+  $('tab-kakao').style.display = name === 'kakao' ? '' : 'none';
+  $('tab-ogq').style.display = name === 'ogq' ? '' : 'none';
+}
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+// ===== 다운로드 =====
+$('downloadKakao').addEventListener('click', async () => {
+  if (!extractedPngs.length) return;
+  const safeBase = (slots.kakao.fileName || 'onestop').replace(/[\/\\:*?"<>|]/g, '_');
+  let zipName = ($('zipName').value || safeBase).trim();
+  zipName = zipName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
+  const zip = new JSZip();
+  extractedPngs.forEach(p => zip.file(p.name, p.blob));
+  const blob = await zip.generateAsync({ type: 'blob' });
+  saveAs(blob, `${zipName}.zip`);
+});
+
+$('downloadOgq').addEventListener('click', async () => {
+  if (!ogqResults.length) return;
+  const safeBase = (slots.kakao.fileName || slots.ogq.fileName || 'onestop').replace(/[\/\\:*?"<>|]/g, '_');
+  let zipName = ($('zipName').value || safeBase).trim();
+  zipName = zipName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
+  const zip = new JSZip();
+  ogqResults.forEach(p => zip.file(p.name, p.blob));
+  const blob = await zip.generateAsync({ type: 'blob' });
+  saveAs(blob, `${zipName}_오지큐.zip`);
+});
 </script>
 
 </body>
