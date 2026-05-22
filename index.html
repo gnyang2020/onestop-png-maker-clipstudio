@@ -135,7 +135,7 @@
 <body>
 
 <h1>[쥐냥] 원스톱 PNG 뽑기</h1>
-<div class="sub">클립스튜디오·프로크리에이트 원스톱 가이드 PSD 또는 PNG → 박스별 투명 PNG → ZIP 자동 묶음</div>
+<div class="sub">클립스튜디오·프로크리에이트 원스톱 가이드 PNG → 박스별 투명 PNG 36장 → ZIP 자동 묶음</div>
 
 <div class="card">
   <h2>⚙️ 설정</h2>
@@ -143,11 +143,11 @@
   <div class="row">
     <label>추출 개수</label>
     <span class="chip" data-count="24">24</span>
-    <span class="chip active" data-count="32">32</span>
-    <span class="chip" data-count="36">36</span>
-    <input type="number" id="count" value="32" min="1" max="999"
+    <span class="chip" data-count="32">32</span>
+    <span class="chip active" data-count="36">36</span>
+    <input type="number" id="count" value="36" min="1" max="36"
            style="width:80px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-variant-numeric:tabular-nums">
-    <span style="color:#6b7280;font-size:12px">개</span>
+    <span style="color:#6b7280;font-size:12px">개 (좌→우, 위→아래)</span>
   </div>
 
   <div class="row">
@@ -159,23 +159,23 @@
 </div>
 
 <div class="card notice">
-  <h2>⚠️ 사용 전 체크 — 두 가지 방식 모두 지원</h2>
+  <h2>⚠️ 사용 전 체크</h2>
   <ul class="notice-list">
-    <li>📂 <strong>PSD 모드</strong> — 가이드 레이어 켠 상태로 PSD 저장 → 박스 자동 검출 후 추출</li>
-    <li>🖼️ <strong>PNG 모드 (추천)</strong> — <strong>가이드 끈 채로 PNG</strong> 저장 → 미리 기억된 좌표로 360×360 추출 (블렌드 모드/마스크 문제 없음)</li>
-    <li>PNG는 권장 <code>2700 × 2700</code> 캔버스. 다른 크기여도 비율 맞으면 자동 스케일</li>
-    <li>PSD 모드에서는 <strong>"★가이드★" 레이어 삭제 금지</strong> — 박스 좌표 검출에 필요</li>
+    <li><strong>가이드 레이어 눈을 끄고</strong> PNG로 저장하세요 — 클튜는 <code>파일 → 내보내기 → .png</code>, 프크는 <code>공유 → PNG</code></li>
+    <li><strong>눈이 켜진 레이어는 모두 결과에 보입니다</strong> — 보이게 하고 싶지 않은 레이어는 눈을 꺼주세요</li>
+    <li>권장 캔버스: <code>2700 × 2700</code> (다른 크기여도 가로/세로 비율 맞으면 자동 스케일)</li>
+    <li><strong>불투명도·블렌드 모드·마스크 모두 안전</strong> — CSP/프크가 PNG 저장 시 픽셀로 굳혀서 내보내므로 화면에 보이는 그대로 잘립니다</li>
   </ul>
 </div>
 
 <div class="card">
-  <h2>📂 파일 입력 (PSD 또는 PNG)</h2>
+  <h2>📂 PNG 파일</h2>
   <div class="drop" id="drop">
-    <div class="ico">📁</div>
-    <div>여기에 <strong>PSD 또는 PNG</strong> 파일을 드래그하거나 클릭해서 선택하세요</div>
-    <div class="hint">PSD: 가이드 켠 채 저장 · PNG: 가이드 끈 채 저장 (2700×2700 권장)</div>
+    <div class="ico">🖼️</div>
+    <div>여기에 <strong>PNG 파일</strong>을 드래그하거나 클릭해서 선택하세요</div>
+    <div class="hint">가이드 레이어 끈 채 저장한 2700×2700 PNG 권장</div>
     <div class="name" id="fileName"></div>
-    <input type="file" id="psdFile" accept=".psd,.png,image/png" style="display:none">
+    <input type="file" id="pngFile" accept=".png,image/png" style="display:none">
   </div>
 </div>
 
@@ -199,7 +199,6 @@
   © 2026 G.NYANG. All rights reserved.
 </footer>
 
-<script src="https://cdn.jsdelivr.net/npm/ag-psd/dist/bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
@@ -211,31 +210,26 @@ const gridEl = $('grid');
 const statsEl = $('stats');
 const resultCardEl = $('resultCard');
 
-// ===== PNG 모드용 하드코딩 프리셋 (진영님 원스톱 가이드 PSD에서 추출) =====
+// ===== 하드코딩 프리셋 (진영님 원스톱 가이드 PSD에서 추출) =====
 // 2700×2700 캔버스, 6×6=36칸, 각 박스 정확히 360×360
-const PRESETS = {
-  "onestop-36": {
-    name: "원스톱 36칸 (6×6)",
-    canvas: { w: 2700, h: 2700 },
-    grid: { rows: 6, cols: 6 },
-    size: 360,
-    coords: [
-      {x:62,y:60},   {x:505,y:60},   {x:948,y:60},   {x:1392,y:60},   {x:1835,y:60},   {x:2278,y:60},
-      {x:62,y:503},  {x:505,y:503},  {x:948,y:503},  {x:1392,y:503},  {x:1835,y:503},  {x:2278,y:503},
-      {x:62,y:947},  {x:505,y:947},  {x:948,y:947},  {x:1392,y:947},  {x:1835,y:947},  {x:2278,y:947},
-      {x:62,y:1390}, {x:505,y:1390}, {x:948,y:1390}, {x:1392,y:1390}, {x:1835,y:1390}, {x:2278,y:1390},
-      {x:62,y:1834}, {x:505,y:1834}, {x:948,y:1834}, {x:1392,y:1834}, {x:1835,y:1834}, {x:2278,y:1834},
-      {x:62,y:2277}, {x:505,y:2277}, {x:948,y:2277}, {x:1392,y:2277}, {x:1835,y:2277}, {x:2278,y:2277},
-    ],
-  },
+const ACTIVE_PRESET = {
+  name: "원스톱 36칸 (6×6)",
+  canvas: { w: 2700, h: 2700 },
+  grid: { rows: 6, cols: 6 },
+  size: 360,
+  coords: [
+    {x:62,y:60},   {x:505,y:60},   {x:948,y:60},   {x:1392,y:60},   {x:1835,y:60},   {x:2278,y:60},
+    {x:62,y:503},  {x:505,y:503},  {x:948,y:503},  {x:1392,y:503},  {x:1835,y:503},  {x:2278,y:503},
+    {x:62,y:947},  {x:505,y:947},  {x:948,y:947},  {x:1392,y:947},  {x:1835,y:947},  {x:2278,y:947},
+    {x:62,y:1390}, {x:505,y:1390}, {x:948,y:1390}, {x:1392,y:1390}, {x:1835,y:1390}, {x:2278,y:1390},
+    {x:62,y:1834}, {x:505,y:1834}, {x:948,y:1834}, {x:1392,y:1834}, {x:1835,y:1834}, {x:2278,y:1834},
+    {x:62,y:2277}, {x:505,y:2277}, {x:948,y:2277}, {x:1392,y:2277}, {x:1835,y:2277}, {x:2278,y:2277},
+  ],
 };
-const ACTIVE_PRESET = PRESETS["onestop-36"];
 
-let mode = null;          // 'psd' | 'png'
-let psdData = null;       // PSD 모드 상태
-let imgBitmap = null;     // PNG 모드 상태
+let imgBitmap = null;
 let extractedPngs = [];
-let psdFileName = '';     // 확장자 뺀 베이스 이름 (PSD/PNG 공용)
+let baseFileName = '';
 
 function log(msg, cls = '') {
   const line = document.createElement('div');
@@ -262,72 +256,18 @@ document.querySelectorAll('.chip[data-count]').forEach(chip => {
 });
 countInput.addEventListener('input', syncChips);
 
-// ===== 드래그&드롭 (확장자로 PSD/PNG 자동 분기) =====
-function routeFile(file) {
-  if (!file) return;
-  if (/\.png$/i.test(file.name)) loadPng(file);
-  else if (/\.psd$/i.test(file.name)) loadPsd(file);
-  else {
-    log(`❌ 지원하지 않는 파일 형식: ${file.name} (PSD 또는 PNG만 가능)`, 'err');
-  }
-}
+// ===== 드래그&드롭 =====
 const drop = $('drop');
-drop.addEventListener('click', () => $('psdFile').click());
+drop.addEventListener('click', () => $('pngFile').click());
 drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
 drop.addEventListener('dragleave', () => drop.classList.remove('over'));
 drop.addEventListener('drop', e => {
   e.preventDefault(); drop.classList.remove('over');
-  routeFile(e.dataTransfer.files[0]);
+  if (e.dataTransfer.files[0]) loadPng(e.dataTransfer.files[0]);
 });
-$('psdFile').addEventListener('change', e => {
-  routeFile(e.target.files[0]);
+$('pngFile').addEventListener('change', e => {
+  if (e.target.files[0]) loadPng(e.target.files[0]);
 });
-
-// ===== PSD 로드 =====
-async function loadPsd(file) {
-  clearLog();
-  resultCardEl.style.display = 'none';
-  gridEl.innerHTML = '';
-  extractedPngs = [];
-  imgBitmap = null;
-  mode = 'psd';
-  $('generate').disabled = true;
-  setProgress(0);
-
-  psdFileName = file.name.replace(/\.psd$/i, '');
-  $('fileName').textContent = file.name;
-  if (!$('zipName').value) $('zipName').value = `${psdFileName}_원스톱`;
-  log(`📂 PSD 모드 — 파일 로딩: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`);
-
-  try {
-    const buffer = await file.arrayBuffer();
-    psdData = agPsd.readPsd(buffer, {
-      skipLayerImageData: false,
-      skipCompositeImageData: true,
-      skipThumbnail: true,
-    });
-    log(`✅ PSD 파싱 완료: ${psdData.width}×${psdData.height}`, 'ok');
-
-    log(`\n🔍 레이어 구조:`, 'dim');
-    (psdData.children || []).forEach((top) => {
-      const kind = top.children ? '📁' : '🖼';
-      const vis  = top.hidden ? '✗' : '✓';
-      log(`   ${vis} ${kind} ${top.name}`, 'dim');
-      if (top.children) {
-        top.children.forEach(c => {
-          const v = c.hidden ? '✗' : '✓';
-          log(`      ${v} ${c.canvas ? '🖼' : '📁'} ${c.name}`, 'dim');
-        });
-      }
-    });
-
-    $('generate').disabled = false;
-    log(`\n👉 "PNG 자동 추출" 버튼을 누르면 시작합니다.`, 'ok');
-  } catch (e) {
-    log(`❌ PSD 파싱 실패: ${e.message}`, 'err');
-    console.error(e);
-  }
-}
 
 // ===== PNG 로드 (프리셋 좌표 사용) =====
 async function loadPng(file) {
@@ -335,15 +275,19 @@ async function loadPng(file) {
   resultCardEl.style.display = 'none';
   gridEl.innerHTML = '';
   extractedPngs = [];
-  psdData = null;
-  mode = 'png';
+  imgBitmap = null;
   $('generate').disabled = true;
   setProgress(0);
 
-  psdFileName = file.name.replace(/\.png$/i, '');
+  if (!/\.png$/i.test(file.name) && file.type !== 'image/png') {
+    log(`❌ PNG 파일만 가능합니다: ${file.name}`, 'err');
+    return;
+  }
+
+  baseFileName = file.name.replace(/\.png$/i, '');
   $('fileName').textContent = file.name;
-  if (!$('zipName').value) $('zipName').value = `${psdFileName}_원스톱`;
-  log(`📂 PNG 모드 — 파일 로딩: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`);
+  if (!$('zipName').value) $('zipName').value = `${baseFileName}_원스톱`;
+  log(`📂 파일 로딩: ${file.name} (${(file.size/1024/1024).toFixed(2)} MB)`);
 
   try {
     imgBitmap = await createImageBitmap(file);
@@ -374,242 +318,8 @@ async function loadPng(file) {
   }
 }
 
-// ===== 레이어 탐색 =====
-// 1) 정확 일치 우선, 2) 안 되면 부분 매칭. 깊이 우선 트리 순회.
-function findLayer(root, exactNames, partialKeywords = []) {
-  function walkExact(node) {
-    for (const child of (node.children || [])) {
-      if (child.canvas && exactNames.includes(child.name)) return child;
-      if (child.children) {
-        const inner = walkExact(child);
-        if (inner) return inner;
-      }
-    }
-    return null;
-  }
-  function walkPartial(node) {
-    for (const child of (node.children || [])) {
-      const name = (child.name || '').toLowerCase();
-      if (child.canvas && partialKeywords.some(k => name.includes(k.toLowerCase()))) return child;
-      if (child.children) {
-        const inner = walkPartial(child);
-        if (inner) return inner;
-      }
-    }
-    return null;
-  }
-  return walkExact(root) || walkPartial(root);
-}
-
-// 루트부터 visible 레이어 모두 합성 (아래→위 순서). exclude로 지정된 노드는 스킵.
-function compositeAll(root, width, height, exclude = null) {
-  const canvas = document.createElement('canvas');
-  canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  let painted = 0;
-
-  function paintRecursive(node) {
-    if (node === exclude) return;
-    if (node.hidden) return;
-    if (node.children) {
-      const kids = [...node.children].reverse();
-      kids.forEach(child => paintRecursive(child));
-      return;
-    }
-    if (!node.canvas) return;
-    const left = node.left || 0;
-    const top  = node.top  || 0;
-    // CSP PSD 함정: 모든 레이어 opacity=1/255로 깔리는 버그가 있어 opacity=1이면 무시.
-    const rawOpacity = (node.opacity != null) ? node.opacity : 255;
-    const opacity = (rawOpacity === 1) ? 1 : (rawOpacity / 255);
-    if (opacity <= 0) return;
-    ctx.save();
-    ctx.globalAlpha = opacity;
-    ctx.drawImage(node.canvas, left, top);
-    ctx.restore();
-    painted++;
-  }
-
-  // root는 PSD 객체. children부터 시작 (root 자체는 그릴 게 없음)
-  const kids = [...(root.children || [])].reverse();
-  kids.forEach(child => paintRecursive(child));
-  return { canvas, painted };
-}
-
-function layerToFullCanvas(layer, width, height) {
-  const canvas = document.createElement('canvas');
-  canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  if (layer.canvas) {
-    ctx.drawImage(layer.canvas, layer.left || 0, layer.top || 0);
-  }
-  return canvas;
-}
-
-// ===== 박스 검출 (행/열 투영 히스토그램) =====
-function detectGuideBoxes(guideCanvas) {
-  const w = guideCanvas.width, h = guideCanvas.height;
-  const ctx = guideCanvas.getContext('2d');
-  const imgData = ctx.getImageData(0, 0, w, h);
-  const data = imgData.data;
-
-  const rowDensity = new Int32Array(h);
-  const colDensity = new Int32Array(w);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4;
-      const a = data[i+3];
-      if (a < 50) continue;
-      const gray = (data[i] + data[i+1] + data[i+2]) / 3;
-      if (gray < 200) {
-        rowDensity[y]++;
-        colDensity[x]++;
-      }
-    }
-  }
-
-  function maxOf(arr) { let m = 0; for (const v of arr) if (v > m) m = v; return m; }
-  function findSegments(arr, thresh) {
-    const segs = [];
-    let i = 0;
-    while (i < arr.length) {
-      if (arr[i] > thresh) {
-        let j = i;
-        while (j < arr.length && arr[j] > thresh) j++;
-        segs.push([i, j-1]);
-        i = j;
-      } else i++;
-    }
-    return segs;
-  }
-
-  const rowSegs = findSegments(rowDensity, maxOf(rowDensity) * 0.5);
-  const colSegs = findSegments(colDensity, maxOf(colDensity) * 0.5);
-
-  if (rowSegs.length % 2 !== 0 || colSegs.length % 2 !== 0) {
-    throw new Error(`가이드선 세그먼트 수가 홀수: 가로 ${rowSegs.length}, 세로 ${colSegs.length}. 가이드 레이어를 확인해주세요.`);
-  }
-  const rows = rowSegs.length / 2;
-  const cols = colSegs.length / 2;
-  if (rows < 1 || cols < 1) {
-    throw new Error(`가이드 박스를 찾지 못했습니다.`);
-  }
-
-  const boxes = [];
-  const sizes = [];
-  for (let r = 0; r < rows; r++) {
-    const topSeg = rowSegs[r*2];
-    const botSeg = rowSegs[r*2+1];
-    const y1 = topSeg[1] + 1;
-    const y2 = botSeg[0];
-    for (let c = 0; c < cols; c++) {
-      const leftSeg  = colSegs[c*2];
-      const rightSeg = colSegs[c*2+1];
-      const x1 = leftSeg[1] + 1;
-      const x2 = rightSeg[0];
-      boxes.push({ r, c, x1, y1, x2, y2, w: x2-x1, h: y2-y1 });
-      sizes.push([x2-x1, y2-y1]);
-    }
-  }
-  return { rows, cols, boxes, sizes };
-}
-
-// ===== 메인: 추출 (모드에 따라 분기) =====
+// ===== 메인: 박스별 crop + ZIP =====
 $('generate').addEventListener('click', async () => {
-  if (mode === 'png') return generateFromPng();
-  if (mode !== 'psd' || !psdData) return;
-  $('generate').disabled = true;
-  resultCardEl.style.display = 'none';
-  gridEl.innerHTML = '';
-  extractedPngs = [];
-  setProgress(0);
-
-  try {
-    const W = psdData.width, H = psdData.height;
-
-    log(`\n🔎 가이드 레이어 탐색…`);
-    const guideLayer = findLayer(psdData, ['★가이드★'], ['가이드', 'guide']);
-    if (!guideLayer) {
-      throw new Error(`가이드 레이어를 못 찾았어요. "★가이드★"라는 이름의 레이어가 있어야 합니다.`);
-    }
-    log(`   ✓ 가이드 레이어: "${guideLayer.name}" (bbox: ${guideLayer.left || 0},${guideLayer.top || 0} ~ ${(guideLayer.left||0)+(guideLayer.canvas?.width||0)},${(guideLayer.top||0)+(guideLayer.canvas?.height||0)})`, 'ok');
-    setProgress(0.15);
-
-    log(`\n📐 박스 좌표 자동 검출 중…`);
-    const guideCanvas = layerToFullCanvas(guideLayer, W, H);
-    const { rows, cols, boxes, sizes } = detectGuideBoxes(guideCanvas);
-    const allSameSize = sizes.every(s => s[0] === sizes[0][0] && s[1] === sizes[0][1]);
-    log(`   ✓ ${rows}행 × ${cols}열 = ${boxes.length}개 박스`, 'ok');
-    log(`   ✓ 박스 크기: ${sizes[0][0]} × ${sizes[0][1]}${allSameSize ? '' : '  (⚠️ 박스 크기 불일치 — 가이드 레이어를 확인하세요)'}`,
-        allSameSize ? 'ok' : 'err');
-    if (!allSameSize) {
-      log(`   디버그: 박스별 크기 ${sizes.slice(0, 6).map(s => `${s[0]}×${s[1]}`).join(', ')}…`, 'dim');
-    }
-    setProgress(0.35);
-
-    log(`\n🎨 눈 켜진 모든 레이어 합성 중… (가이드 레이어는 제외)`);
-    const { canvas: emotCanvas, painted } = compositeAll(psdData, W, H, guideLayer);
-    log(`   ✓ ${painted}개 레이어 합성 완료 (${W}×${H})`, 'ok');
-    setProgress(0.55);
-
-    // 사용자가 지정한 추출 개수 (좌→우, 위→아래 순서로 처음 N개)
-    const requestedCount = Math.max(1, parseInt(countInput.value) || 32);
-    const targetCount = Math.min(requestedCount, boxes.length);
-    if (requestedCount > boxes.length) {
-      log(`   ⚠️ 요청 ${requestedCount}개지만 검출된 박스가 ${boxes.length}개라 ${targetCount}개만 추출`, 'err');
-    } else {
-      log(`   ✓ 추출 개수: ${targetCount}개 (검출 ${boxes.length}개 중 처음 ${targetCount}개)`, 'ok');
-    }
-
-    log(`\n✂️  박스별 crop 시작…`);
-    let nonempty = 0, empty = 0;
-    for (let i = 0; i < targetCount; i++) {
-      const b = boxes[i];
-      const c = document.createElement('canvas');
-      c.width = b.w; c.height = b.h;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(emotCanvas, b.x1, b.y1, b.w, b.h, 0, 0, b.w, b.h);
-
-      const isEmpty = isCanvasEmpty(c);
-      if (isEmpty) empty++; else nonempty++;
-
-      const num = String(i+1).padStart(2, '0');
-      const safeBase = (psdFileName || 'onestop').replace(/[\/\\:*?"<>|]/g, '_');
-      const name = `${safeBase}_${num}.png`;
-      const blob = await canvasToBlob(c);
-      const dataUrl = c.toDataURL('image/png');
-      extractedPngs.push({ name, blob, dataUrl, isEmpty });
-
-      setProgress(0.55 + (i+1)/targetCount * 0.3);
-    }
-    log(`   ✓ 완료: 그림 있음 ${nonempty}개 / 빈 박스 ${empty}개`, 'ok');
-    setProgress(0.85);
-
-    showResults(rows, cols, sizes[0]);
-
-    // ZIP 자동 묶기 + 다운로드
-    log(`\n📦 ZIP 묶는 중…`);
-    let zipName = ($('zipName').value || `${psdFileName}_원스톱`).trim();
-    zipName = zipName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
-    const zip = new JSZip();
-    extractedPngs.forEach(p => zip.file(p.name, p.blob));
-    const zipBlob = await zip.generateAsync({ type: 'blob' }, meta => {
-      setProgress(0.85 + (meta.percent / 100) * 0.15);
-    });
-    saveAs(zipBlob, `${zipName}.zip`);
-    setProgress(1);
-    log(`\n🎉 완료! ${zipName}.zip 다운로드`, 'ok');
-  } catch (e) {
-    log(`\n❌ 오류: ${e.message}`, 'err');
-    console.error(e);
-    setProgress(0);
-  } finally {
-    $('generate').disabled = false;
-  }
-});
-
-// ===== PNG 모드 추출 (프리셋 좌표로 크롭 + ZIP) =====
-async function generateFromPng() {
   if (!imgBitmap) return;
   $('generate').disabled = true;
   resultCardEl.style.display = 'none';
@@ -655,7 +365,7 @@ async function generateFromPng() {
       if (isEmpty) empty++; else nonempty++;
 
       const num = String(i+1).padStart(2, '0');
-      const safeBase = (psdFileName || 'onestop').replace(/[\/\\:*?"<>|]/g, '_');
+      const safeBase = (baseFileName || 'onestop').replace(/[\/\\:*?"<>|]/g, '_');
       const name = `${safeBase}_${num}.png`;
       const blob = await canvasToBlob(c);
       const dataUrl = c.toDataURL('image/png');
@@ -669,7 +379,7 @@ async function generateFromPng() {
     showResults(ACTIVE_PRESET.grid.rows, ACTIVE_PRESET.grid.cols, [ACTIVE_PRESET.size, ACTIVE_PRESET.size]);
 
     log(`\n📦 ZIP 묶는 중…`);
-    let zipName = ($('zipName').value || `${psdFileName}_원스톱`).trim();
+    let zipName = ($('zipName').value || `${baseFileName}_원스톱`).trim();
     zipName = zipName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
     const zip = new JSZip();
     extractedPngs.forEach(p => zip.file(p.name, p.blob));
@@ -686,7 +396,7 @@ async function generateFromPng() {
   } finally {
     $('generate').disabled = false;
   }
-}
+});
 
 function canvasToBlob(canvas) {
   return new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
