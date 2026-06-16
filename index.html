@@ -53,14 +53,6 @@
   .row { display: flex; align-items: center; gap: 14px; margin: 10px 0; flex-wrap: wrap; }
   .row label { min-width: 110px; font-size: 13px; color: #374151; }
 
-  .chip {
-    padding: 6px 14px; border: 1px solid #d1d5db; background: #fff;
-    border-radius: 999px; font-size: 13px; cursor: pointer; color: #374151;
-    transition: .15s; font-weight: 600;
-  }
-  .chip:hover { border-color: #111827; }
-  .chip.active { background: #111827; color: #fff; border-color: #111827; }
-
   input[type=number]::-webkit-inner-spin-button,
   input[type=number]::-webkit-outer-spin-button {
     -webkit-appearance: inner-spin-button;
@@ -122,9 +114,9 @@
   .drop .name { font-size: 11px; color: #111827; font-weight: 600; word-break: break-all; padding: 0 8px; }
   .drop .thumb { max-width: 100%; max-height: 100px; border-radius: 6px; margin: 4px 0; image-rendering: pixelated; }
   .drop .clear-btn {
-    position: absolute; top: 6px; right: 6px;
+    position: absolute; top: 6px; right: 6px; z-index: 2;
     width: 22px; height: 22px; border-radius: 50%;
-    background: rgba(0,0,0,.6); color: #fff; border: 0;
+    background: rgba(107,114,128,.85); color: #fff; border: 0;
     font-size: 11px; cursor: pointer; line-height: 1; padding: 0;
     display: none;
   }
@@ -193,44 +185,13 @@
     font-size: 11px; color: #999; text-align: center; letter-spacing: 0.04em;
   }
 
-  /* 결과 탭 — 알약 형태 둥근 버튼 */
-  .result-tabs {
-    display: flex; gap: 8px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  /* 탭 옆 OGQ ZIP 다운로드 버튼 */
-  .result-tabs .download-inline {
-    margin-left: auto;
-    padding: 8px 16px;
-    border-radius: 999px;
-    border: 0;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: .15s;
-    background: #d1fae5;
-    color: #065f46;
-  }
-  .result-tabs .download-inline:hover:not(:disabled) { background: #a7f3d0; }
-  .result-tabs .download-inline:disabled {
-    background: #e5e7eb; color: #9ca3af; cursor: not-allowed;
-  }
-  .tab-btn {
-    padding: 8px 16px; border: 1px solid #e5e7eb; background: #fff;
-    font-size: 13px; font-weight: 600; color: #6b7280; cursor: pointer;
-    border-radius: 999px;
-    transition: .15s;
-  }
-  .tab-btn:hover { color: #111827; background: #f9fafb; }
-  .tab-btn[data-tab="kakao"].active {
-    background: #fef9c3; color: #854d0e; border-color: #facc15;
-  }
-  .tab-btn[data-tab="ogq"].active {
-    background: #d1fae5; color: #065f46; border-color: #34d399;
+  /* 결과 섹션 제목 */
+  .result-section-title {
+    font-size: 14px; font-weight: 700; color: #111827;
+    margin: 4px 0 14px;
   }
   .tab-pane { animation: fadeIn .2s ease; }
+  .tab-pane.stacked { margin-top: 28px; padding-top: 24px; border-top: 1px solid #eef0f3; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
   .grid-preview.ogq .cell { aspect-ratio: 740 / 640; }
@@ -239,6 +200,9 @@
     color: #6b7280; font-size: 13px; padding: 32px 12px; text-align: center;
     background: #f9fafb; border-radius: 8px; line-height: 1.6;
   }
+
+  /* 아이콘 셀(36번) — 카카오 전용 */
+  .cell.icon .num { background: rgba(139, 92, 246, .92); }
 
   @media (max-width: 640px) {
     body { padding: 22px 14px; }
@@ -262,6 +226,7 @@
     <li><strong>반드시 쥐냥작가의 원스톱 가이드만 가능합니다.</strong></li>
     <li><strong>가이드와 필요없는 레이어 눈은 반드시 꺼주세요.</strong></li>
     <li><strong>카카오용 PNG</strong>: 글자에 테두리 적용한 버전</li>
+    <li>맨 마지막 칸은 아이콘으로 자동 변환됩니다.</li>
     <li><strong>오지큐용 PNG</strong>: 전체에 테두리 적용한 버전 (오지큐 변환 시에만 필요)</li>
   </ul>
 </div>
@@ -269,19 +234,13 @@
 <div class="card">
   <h2>⚙️ 설정</h2>
   <div class="row">
-    <label>추출 개수</label>
-    <span class="chip" data-count="24">24</span>
-    <span class="chip active" data-count="32">32</span>
-    <span class="chip" data-count="36">36</span>
-    <input type="number" id="count" value="32" min="1" max="36"
-           style="width:80px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-variant-numeric:tabular-nums">
-    <span style="color:#6b7280;font-size:12px">개 (좌→우, 위→아래)</span>
-  </div>
-  <div class="row">
     <label>ZIP 파일명</label>
     <input type="text" id="zipName" placeholder="비워두면 자동: 카카오 PNG 파일명"
            style="flex:1;min-width:240px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px">
     <span style="color:#6b7280;font-size:12px">.zip 자동</span>
+  </div>
+  <div class="row" style="color:#6b7280;font-size:12px;line-height:1.6;display:block">
+    🤖 <strong>그림이 있는 박스만 자동 추출</strong>합니다 (빈 박스 제외).
   </div>
 </div>
 
@@ -317,7 +276,7 @@
 
 <div class="footer-actions twin-buttons">
   <button class="primary kakao-btn" id="generate" disabled>🚀 PNG 추출</button>
-  <button class="primary kakao-btn" id="downloadKakao" disabled>💾 카카오 ZIP 저장</button>
+  <button class="primary kakao-btn" id="downloadKakao" disabled>💾 ZIP 저장</button>
 </div>
 
 <div class="progress"><div class="bar" id="bar"></div></div>
@@ -325,17 +284,9 @@
 <div class="card" id="resultCard" style="display:none">
   <h2>🖼️ 추출 결과</h2>
 
-  <div class="result-tabs">
-    <button class="tab-btn active" data-tab="kakao">카카오 (360×360)</button>
-    <button class="tab-btn" data-tab="ogq">오지큐 (740×640)</button>
-    <button class="download-inline" id="downloadOgq" disabled>💾 오지큐 ZIP 저장</button>
-  </div>
-
-  <!-- 카카오 탭 -->
-  <div class="tab-pane active" id="tab-kakao">
-    <div id="kakaoEmpty" class="empty-tab-msg" style="display:none">
-      카카오용 PNG를 업로드해 주세요.
-    </div>
+  <!-- 카카오 결과 -->
+  <div class="tab-pane" id="tab-kakao" style="display:none">
+    <div class="result-section-title">🟡 카카오 (360×360)</div>
     <div id="kakaoContent">
       <div class="stats" id="stats"></div>
       <div class="grid-preview" id="grid"></div>
@@ -343,13 +294,10 @@
     </div>
   </div>
 
-  <!-- 오지큐 탭 -->
+  <!-- 오지큐 결과 -->
   <div class="tab-pane" id="tab-ogq" style="display:none">
-    <div id="ogqEmpty" class="empty-tab-msg" style="display:none">
-      오지큐용 PNG 슬롯이 비어있어요.<br>
-      전체에 테두리 적용한 PNG를 업로드 후 다시 추출해주세요.
-    </div>
-    <div id="ogqContent" style="display:none">
+    <div class="result-section-title">🟢 오지큐 (740×640)</div>
+    <div id="ogqContent">
       <div class="stats" id="ogqStats"></div>
       <div class="grid-preview" id="ogqGrid"></div>
     </div>
@@ -394,8 +342,8 @@ const slots = {
   ogq:   { bitmap: null, fileName: '', card: null, drop: null, input: null },
 };
 
-let extractedPngs = [];
-let ogqResults = [];
+let extractedPngs = [];   // 카카오: 36칸 전부 {name, blob, dataUrl, isEmpty, isIcon, num, canvas}
+let ogqResults = [];      // 오지큐: 스티커칸 {name, blob, dataUrl, isEmpty, num}
 
 function log(msg, cls = '') {
   if (cls === 'err') {
@@ -521,27 +469,60 @@ function updateGenerateButton() {
   $('generate').disabled = !slots.kakao.bitmap && !slots.ogq.bitmap;
 }
 
-// ===== 추출 개수 칩 =====
-const countInput = $('count');
-function syncCountChips() {
-  document.querySelectorAll('.chip[data-count]').forEach(c => {
-    c.classList.toggle('active', c.dataset.count === countInput.value);
-  });
+// ===== 공통: 프리셋 좌표로 박스 1칸 정사각 crop =====
+function cropBox(img, i) {
+  const ratioW = img.width / ACTIVE_PRESET.canvas.w;
+  const ratioH = img.height / ACTIVE_PRESET.canvas.h;
+  const coord = ACTIVE_PRESET.coords[i];
+  const sx = Math.round(coord.x * ratioW);
+  const sy = Math.round(coord.y * ratioH);
+  const sw = Math.round(ACTIVE_PRESET.size * ratioW);
+  const sh = Math.round(ACTIVE_PRESET.size * ratioH);
+  const c = document.createElement('canvas');
+  c.width = sw; c.height = sh;
+  c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  return c;
 }
-document.querySelectorAll('.chip[data-count]').forEach(chip => {
-  chip.addEventListener('click', () => {
-    countInput.value = chip.dataset.count;
-    syncCountChips();
-  });
-});
-countInput.addEventListener('input', syncCountChips);
+
+// 캔버스에서 불투명 픽셀의 바운딩 박스 (투명 여백 제외 영역)
+function getOpaqueBBox(canvas) {
+  const w = canvas.width, h = canvas.height;
+  const d = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (d[(y * w + x) * 4 + 3] > 0) {
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+    }
+  }
+  if (maxX < 0) return null; // 전부 투명
+  return { x: minX, y: minY, w: maxX - minX + 1, h: maxY - minY + 1 };
+}
+
+// 그림의 투명 여백을 잘라내고 size×size에 비율 유지로 최대한 확대(가운데 정렬) — 아이콘용
+async function squareToMaxed(src, size, warnKB) {
+  const bb = getOpaqueBBox(src) || { x: 0, y: 0, w: src.width, h: src.height };
+  const c = document.createElement('canvas');
+  c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  const s = Math.min(size / bb.w, size / bb.h); // 비율 유지 최대 확대
+  const dw = bb.w * s, dh = bb.h * s;
+  ctx.drawImage(src, bb.x, bb.y, bb.w, bb.h, (size - dw) / 2, (size - dh) / 2, dw, dh);
+  const blob = await canvasToBlob(c);
+  if (warnKB && blob.size > warnKB * 1024) {
+    console.warn(`⚠️ 아이콘 ${(blob.size / 1024).toFixed(1)}KB > ${warnKB}KB`);
+  }
+  return { blob, dataUrl: c.toDataURL('image/png'), canvas: c, kb: blob.size / 1024 };
+}
 
 // ===== 메인 추출: 두 슬롯에서 각각 36칸 자르기 =====
 $('generate').addEventListener('click', async () => {
   if (!slots.kakao.bitmap && !slots.ogq.bitmap) return;
   $('generate').disabled = true;
   $('downloadKakao').disabled = true;
-  $('downloadOgq').disabled = true;
   resultCardEl.style.display = 'none';
   gridEl.innerHTML = '';
   $('ogqGrid').innerHTML = '';
@@ -550,27 +531,23 @@ $('generate').addEventListener('click', async () => {
   setProgress(0);
 
   try {
-    const requestedCount = Math.max(1, parseInt(countInput.value) || 36);
-    const totalBoxes = ACTIVE_PRESET.coords.length;
-    const targetCount = Math.min(requestedCount, totalBoxes);
-
     setProgress(0.05);
 
-    // 1) 카카오 슬롯 처리
+    // 1) 카카오 슬롯 처리 (그림 있는 칸만 + 36번 아이콘)
     if (slots.kakao.bitmap) {
-      await cropFromSlot('kakao', targetCount, 0.05, 0.5);
+      await cropFromSlot('kakao', 0.05, 0.5);
     }
 
-    // 2) 오지큐 슬롯 처리 (있으면)
+    // 2) 오지큐 슬롯 처리 (있으면) — 스티커 740×640만
     if (slots.ogq.bitmap) {
-      await cropAndScaleOGQ(targetCount, 0.5, 0.95);
+      await cropAndScaleOGQ(0.5, 0.95);
     }
+    setProgress(0.95);
 
-    showResults();
+    await showResults();
     setProgress(1);
 
-    $('downloadKakao').disabled = !extractedPngs.length;
-    $('downloadOgq').disabled = !ogqResults.length;
+    $('downloadKakao').disabled = !extractedPngs.some(p => !p.isEmpty) && !ogqResults.some(p => !p.isEmpty);
   } catch (e) {
     log(`❌ 오류: ${e.message}`, 'err');
     console.error(e);
@@ -580,86 +557,77 @@ $('generate').addEventListener('click', async () => {
   }
 });
 
-async function cropFromSlot(slotName, targetCount, progStart, progEnd) {
+async function cropFromSlot(slotName, progStart, progEnd) {
   const slot = slots[slotName];
   const img = slot.bitmap;
-  const W = img.width, H = img.height;
-  const ratioW = W / ACTIVE_PRESET.canvas.w;
-  const ratioH = H / ACTIVE_PRESET.canvas.h;
   // 사용자가 입력한 ZIP 파일명을 우선 사용, 없으면 슬롯 파일명으로 fallback
   const customZip = $('zipName').value.trim();
   const baseName = customZip || slot.fileName || 'onestop';
   const safeBase = baseName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
 
-  for (let i = 0; i < targetCount; i++) {
-    const coord = ACTIVE_PRESET.coords[i];
-    const sx = Math.round(coord.x * ratioW);
-    const sy = Math.round(coord.y * ratioH);
-    const sw = Math.round(ACTIVE_PRESET.size * ratioW);
-    const sh = Math.round(ACTIVE_PRESET.size * ratioH);
+  const total = ACTIVE_PRESET.coords.length; // 36
+  const ICON = total - 1;                    // 35 = 36번 칸(아이콘)
+  let seq = 0;
 
-    const c = document.createElement('canvas');
-    c.width = sw; c.height = sh;
-    c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
-
+  for (let i = 0; i < total; i++) {
+    const c = cropBox(img, i);
     const isEmpty = isCanvasEmpty(c);
-    const num = String(i+1).padStart(2, '0');
-    const name = `${safeBase}_${num}.png`;
-    const blob = await canvasToBlob(c);
-    const dataUrl = c.toDataURL('image/png');
-    extractedPngs.push({ name, blob, dataUrl, isEmpty, canvas: c });
 
-    setProgress(progStart + (i+1)/targetCount * (progEnd - progStart));
+    if (i === ICON) {
+      // 36번 = 아이콘: 그림 있으면 78×78(≤16KB) PNG로 변환
+      if (!isEmpty) {
+        const icon = await squareToMaxed(c, 78, 16);
+        extractedPngs.push({ name: `${safeBase}_아이콘.png`, blob: icon.blob, dataUrl: icon.dataUrl, isEmpty: false, isIcon: true, num: null, canvas: icon.canvas });
+      } else {
+        extractedPngs.push({ name: `${safeBase}_아이콘.png`, blob: null, dataUrl: c.toDataURL('image/png'), isEmpty: true, isIcon: true, num: null, canvas: c });
+      }
+    } else {
+      let name;
+      if (!isEmpty) { seq++; name = `${safeBase}_${String(seq).padStart(2, '0')}.png`; }
+      else { name = `${safeBase}_빈${String(i + 1).padStart(2, '0')}.png`; }
+      const blob = await canvasToBlob(c);
+      extractedPngs.push({ name, blob, dataUrl: c.toDataURL('image/png'), isEmpty, isIcon: false, num: isEmpty ? null : seq, canvas: c });
+    }
+
+    setProgress(progStart + (i + 1) / total * (progEnd - progStart));
   }
 }
 
-async function cropAndScaleOGQ(targetCount, progStart, progEnd) {
+async function cropAndScaleOGQ(progStart, progEnd) {
   const slot = slots.ogq;
   const img = slot.bitmap;
-  const W = img.width, H = img.height;
-  const ratioW = W / ACTIVE_PRESET.canvas.w;
-  const ratioH = H / ACTIVE_PRESET.canvas.h;
   // 사용자 ZIP 입력 우선, 없으면 슬롯 파일명. 카카오 슬롯 파일명도 fallback으로 사용 (오지큐만 채운 경우 대비)
   const customZip = $('zipName').value.trim();
   const baseName = customZip || slot.fileName || slots.kakao.fileName || 'onestop';
   const safeBase = baseName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
 
-  for (let i = 0; i < targetCount; i++) {
-    const coord = ACTIVE_PRESET.coords[i];
-    const sx = Math.round(coord.x * ratioW);
-    const sy = Math.round(coord.y * ratioH);
-    const sw = Math.round(ACTIVE_PRESET.size * ratioW);
-    const sh = Math.round(ACTIVE_PRESET.size * ratioH);
+  const total = ACTIVE_PRESET.coords.length; // 36
+  const ICON = total - 1;                    // 35 = 36번 칸(탭 소스)
+  let seq = 0;
 
-    // 1) 박스 crop
-    const cropped = document.createElement('canvas');
-    cropped.width = sw; cropped.height = sh;
-    cropped.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, sw, sh);
+  for (let i = 0; i < ICON; i++) {           // 스티커칸만 (36번 아이콘 제외)
+    const square = cropBox(img, i);          // 정사각 원본 (메인 생성용으로 보관)
+    const isEmpty = isCanvasEmpty(square);
 
-    const isEmpty = isCanvasEmpty(cropped);
-
-    // 2) 640×640 업스케일
+    // 640×640 업스케일 → 740×640 캔버스 가운데 배치
     const scaled = document.createElement('canvas');
     scaled.width = OGQ.scaleTo; scaled.height = OGQ.scaleTo;
     const sctx = scaled.getContext('2d');
     sctx.imageSmoothingEnabled = true;
     sctx.imageSmoothingQuality = 'high';
-    sctx.drawImage(cropped, 0, 0, OGQ.scaleTo, OGQ.scaleTo);
+    sctx.drawImage(square, 0, 0, OGQ.scaleTo, OGQ.scaleTo);
 
-    // 3) 740×640 캔버스 가운데 배치
     const out = document.createElement('canvas');
     out.width = OGQ.w; out.height = OGQ.h;
-    const octx = out.getContext('2d');
-    const dx = Math.round((OGQ.w - OGQ.scaleTo) / 2);
-    octx.drawImage(scaled, dx, 0);
+    out.getContext('2d').drawImage(scaled, Math.round((OGQ.w - OGQ.scaleTo) / 2), 0);
 
-    const num = String(i+1).padStart(2, '0');
-    const name = `${safeBase}_${num}_오지큐.png`;
+    let name;
+    if (!isEmpty) { seq++; name = `${safeBase}_${String(seq).padStart(2, '0')}_오지큐.png`; }
+    else { name = `${safeBase}_빈${String(i + 1).padStart(2, '0')}_오지큐.png`; }
     const blob = await canvasToBlob(out);
-    const dataUrl = out.toDataURL('image/png');
-    ogqResults.push({ name, blob, dataUrl, isEmpty });
+    ogqResults.push({ name, blob, dataUrl: out.toDataURL('image/png'), isEmpty, num: isEmpty ? null : seq });
 
-    setProgress(progStart + (i+1)/targetCount * (progEnd - progStart));
+    setProgress(progStart + (i + 1) / ICON * (progEnd - progStart));
   }
 }
 
@@ -675,100 +643,82 @@ function isCanvasEmpty(canvas) {
   return true;
 }
 
-// ===== 결과 표시 =====
-function showResults() {
+// ===== 결과 표시 (탭 없이 해당 결과만 노출) =====
+async function showResults() {
   resultCardEl.style.display = 'block';
 
-  // 카카오 탭
-  if (extractedPngs.length) {
-    $('kakaoEmpty').style.display = 'none';
-    $('kakaoContent').style.display = '';
+  // ── 카카오 결과 ──
+  const hasKakao = extractedPngs.some(p => !p.isEmpty);
+  $('tab-kakao').style.display = hasKakao ? '' : 'none';
+  if (hasKakao) {
+    const filled = extractedPngs.filter(p => !p.isEmpty && !p.isIcon).length;
+    const hasIcon = extractedPngs.some(p => p.isIcon && !p.isEmpty);
     statsEl.innerHTML = `
-      <span>📦 <strong>${extractedPngs.length}장</strong> 추출</span>
+      <span>🎨 시안 <strong>${filled}장</strong></span>
+      <span>⭐ 아이콘 <strong>${hasIcon ? '있음 · 78×78' : '없음'}</strong></span>
       <span>📏 <strong>${ACTIVE_PRESET.size} × ${ACTIVE_PRESET.size} px</strong></span>
-      <span>📐 <strong>${ACTIVE_PRESET.grid.rows}행 × ${ACTIVE_PRESET.grid.cols}열</strong></span>
-      <span>✨ 그림 <strong>${extractedPngs.filter(p => !p.isEmpty).length}</strong> / 빈 박스 <strong>${extractedPngs.filter(p => p.isEmpty).length}</strong></span>
     `;
     gridEl.style.gridTemplateColumns = `repeat(${ACTIVE_PRESET.grid.cols}, 1fr)`;
     gridEl.innerHTML = '';
-    extractedPngs.forEach((p, i) => {
+    extractedPngs.forEach(p => {
       const cell = document.createElement('div');
-      cell.className = 'cell' + (p.isEmpty ? ' empty' : '');
-      cell.title = `${p.name}\n클릭하면 단독 다운로드`;
-      cell.innerHTML = `<img src="${p.dataUrl}" alt="${p.name}"><span class="num">${String(i+1).padStart(2,'0')}</span>`;
-      cell.addEventListener('click', () => saveAs(p.blob, p.name));
+      cell.className = 'cell' + (p.isEmpty ? ' empty' : '') + (p.isIcon ? ' icon' : '');
+      const badge = p.isIcon ? '아이콘' : (p.num != null ? String(p.num).padStart(2, '0') : '–');
+      cell.title = p.isEmpty ? '빈 박스 (ZIP에서 제외)' : `${p.name}\n클릭하면 단독 다운로드`;
+      cell.innerHTML = `<img src="${p.dataUrl}" alt=""><span class="num">${badge}</span>`;
+      if (!p.isEmpty && p.blob) cell.addEventListener('click', () => saveAs(p.blob, p.name));
       gridEl.appendChild(cell);
     });
-  } else {
-    $('kakaoEmpty').style.display = '';
-    $('kakaoContent').style.display = 'none';
   }
 
-  // 오지큐 탭
-  const ogqContent = $('ogqContent');
-  const ogqEmpty = $('ogqEmpty');
+  // ── 오지큐 결과 ──
   const ogqGrid = $('ogqGrid');
-  if (ogqResults.length) {
-    ogqEmpty.style.display = 'none';
-    ogqContent.style.display = '';
+  const hasOgq = ogqResults.some(p => !p.isEmpty);
+  $('tab-ogq').style.display = hasOgq ? '' : 'none';
+  $('tab-ogq').classList.toggle('stacked', hasKakao && hasOgq);
+  if (hasOgq) {
+    const filled = ogqResults.filter(p => !p.isEmpty).length;
     $('ogqStats').innerHTML = `
-      <span>📦 <strong>${ogqResults.length}장</strong> 변환</span>
-      <span>📏 <strong>${OGQ.w} × ${OGQ.h} px</strong></span>
-      <span>✨ 그림 <strong>${ogqResults.filter(p => !p.isEmpty).length}</strong> / 빈 박스 <strong>${ogqResults.filter(p => p.isEmpty).length}</strong></span>
+      <span>🟢 스티커 <strong>${filled}종</strong> · ${OGQ.w}×${OGQ.h}</span>
+      <span>📐 <strong>${ACTIVE_PRESET.grid.rows}행 × ${ACTIVE_PRESET.grid.cols}열</strong></span>
     `;
     ogqGrid.className = 'grid-preview ogq';
     ogqGrid.style.gridTemplateColumns = `repeat(${ACTIVE_PRESET.grid.cols}, 1fr)`;
     ogqGrid.innerHTML = '';
-    ogqResults.forEach((p, i) => {
+    ogqResults.forEach(p => {
       const cell = document.createElement('div');
       cell.className = 'cell' + (p.isEmpty ? ' empty' : '');
-      cell.title = `${p.name}\n클릭하면 단독 다운로드`;
-      cell.innerHTML = `<img src="${p.dataUrl}" alt="${p.name}"><span class="num">${String(i+1).padStart(2,'0')}</span>`;
-      cell.addEventListener('click', () => saveAs(p.blob, p.name));
+      const badge = p.num != null ? String(p.num).padStart(2, '0') : '–';
+      cell.title = p.isEmpty ? '빈 박스 (ZIP에서 제외)' : `${p.name}\n클릭하면 단독 다운로드`;
+      cell.innerHTML = `<img src="${p.dataUrl}" alt=""><span class="num">${badge}</span>`;
+      if (!p.isEmpty && p.blob) cell.addEventListener('click', () => saveAs(p.blob, p.name));
       ogqGrid.appendChild(cell);
     });
-  } else {
-    ogqEmpty.style.display = '';
-    ogqContent.style.display = 'none';
   }
-
-  // 카카오에 결과가 있으면 카카오 탭 시작, 없으면 오지큐 탭 시작
-  switchTab(extractedPngs.length ? 'kakao' : 'ogq');
 }
 
-// ===== 탭 전환 =====
-function switchTab(name) {
-  document.querySelectorAll('.tab-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.tab === name);
-  });
-  $('tab-kakao').style.display = name === 'kakao' ? '' : 'none';
-  $('tab-ogq').style.display = name === 'ogq' ? '' : 'none';
-}
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-});
-
-// ===== 다운로드 =====
+// ===== 다운로드: 채워진 슬롯에 맞춰 자동 (카카오→카카오, 오지큐→오지큐) =====
 $('downloadKakao').addEventListener('click', async () => {
-  if (!extractedPngs.length) return;
-  const safeBase = (slots.kakao.fileName || 'onestop').replace(/[\/\\:*?"<>|]/g, '_');
-  let zipName = ($('zipName').value || safeBase).trim();
-  zipName = zipName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
-  const zip = new JSZip();
-  extractedPngs.forEach(p => zip.file(p.name, p.blob));
-  const blob = await zip.generateAsync({ type: 'blob' });
-  saveAs(blob, `${zipName}.zip`);
-});
+  const hasKakao = extractedPngs.some(p => !p.isEmpty);
+  const hasOgq = ogqResults.some(p => !p.isEmpty);
+  if (!hasKakao && !hasOgq) return;
 
-$('downloadOgq').addEventListener('click', async () => {
-  if (!ogqResults.length) return;
-  const safeBase = (slots.kakao.fileName || slots.ogq.fileName || 'onestop').replace(/[\/\\:*?"<>|]/g, '_');
-  let zipName = ($('zipName').value || safeBase).trim();
-  zipName = zipName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
-  const zip = new JSZip();
-  ogqResults.forEach(p => zip.file(p.name, p.blob));
-  const blob = await zip.generateAsync({ type: 'blob' });
-  saveAs(blob, `${zipName}_오지큐.zip`);
+  // 카카오 ZIP (시안 + 아이콘)
+  if (hasKakao) {
+    const base = ($('zipName').value || slots.kakao.fileName || 'onestop')
+      .trim().replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
+    const zip = new JSZip();
+    extractedPngs.filter(p => !p.isEmpty && p.blob).forEach(p => zip.file(p.name, p.blob));
+    saveAs(await zip.generateAsync({ type: 'blob' }), `${base}.zip`);
+  }
+  // 오지큐 ZIP (스티커)
+  if (hasOgq) {
+    const base = ($('zipName').value || slots.ogq.fileName || slots.kakao.fileName || 'onestop')
+      .trim().replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
+    const zip = new JSZip();
+    ogqResults.filter(p => !p.isEmpty).forEach(p => zip.file(p.name, p.blob));
+    saveAs(await zip.generateAsync({ type: 'blob' }), `${base}_오지큐.zip`);
+  }
 });
 </script>
 
