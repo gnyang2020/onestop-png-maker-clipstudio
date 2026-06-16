@@ -204,6 +204,28 @@
   /* 아이콘 셀(36번) — 카카오 전용 */
   .cell.icon .num { background: rgba(139, 92, 246, .92); }
 
+  /* 오지큐 메인·탭 미리보기 */
+  .ogq-extras {
+    display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end;
+    margin-bottom: 14px; padding: 12px;
+    background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px;
+  }
+  .ogq-extras .xbox { text-align: center; font-size: 12px; color: #065f46; }
+  .ogq-extras .xbox .label { font-weight: 700; margin-bottom: 6px; }
+  .ogq-extras .xbox .frame {
+    background-color: #fff;
+    background-image:
+      linear-gradient(45deg,#e5e7eb 25%,transparent 25%),
+      linear-gradient(-45deg,#e5e7eb 25%,transparent 25%),
+      linear-gradient(45deg,transparent 75%,#e5e7eb 75%),
+      linear-gradient(-45deg,transparent 75%,#e5e7eb 75%);
+    background-size: 12px 12px; background-position: 0 0,0 6px,6px -6px,-6px 0;
+    border: 1px solid #bbf7d0; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .ogq-extras .xbox .frame img { display: block; }
+  .ogq-extras .xbox .dim { color: #9ca3af; font-size: 11px; padding: 14px; }
+
   @media (max-width: 640px) {
     body { padding: 22px 14px; }
     h1 { font-size: 19px; }
@@ -225,9 +247,10 @@
   <ul class="notice-list">
     <li><strong>반드시 쥐냥작가의 원스톱 가이드만 가능합니다.</strong></li>
     <li><strong>가이드와 필요없는 레이어 눈은 반드시 꺼주세요.</strong></li>
-    <li><strong>카카오용 PNG</strong>: 글자에 테두리 적용한 버전</li>
-    <li>맨 마지막 칸은 아이콘으로 자동 변환됩니다.</li>
-    <li><strong>오지큐용 PNG</strong>: 전체에 테두리 적용한 버전 (오지큐 변환 시에만 필요)</li>
+    <li><strong>카카오용 PNG</strong>: 글자에 테두리 적용한 버전 · 맨 마지막 칸은 아이콘으로 자동 변환</li>
+    <li><strong>오지큐용 PNG</strong>: <strong>테두리 없는 원본</strong> (도구가 흰 테두리 자동 적용)</li>
+    <li>오지큐는 <strong>35번 = 메인</strong>(240×240), <strong>36번 = 탭</strong>(96×74)으로 자동 변환됩니다.</li>
+    <li>오지큐 흰 테두리 두께 — <strong>시안 8px · 메인 3px · 탭 1px</strong></li>
   </ul>
 </div>
 
@@ -264,7 +287,7 @@
       오지큐용 PNG
       <span class="badge opt">선택</span>
     </div>
-    <div class="slot-hint">전체에 테두리 적용한 PNG</div>
+    <div class="slot-hint">테두리 없는 원본 PNG (테두리 자동 적용)</div>
     <div class="drop" data-slot="ogq">
       <button class="clear-btn" title="지우기">✕</button>
       <div class="ico">☘️</div>
@@ -299,6 +322,7 @@
     <div class="result-section-title">🟢 오지큐 (740×640)</div>
     <div id="ogqContent">
       <div class="stats" id="ogqStats"></div>
+      <div class="ogq-extras" id="ogqExtras"></div>
       <div class="grid-preview" id="ogqGrid"></div>
     </div>
   </div>
@@ -329,6 +353,10 @@ const ACTIVE_PRESET = {
 };
 
 const OGQ = { w: 740, h: 640, scaleTo: 640 };
+// 오지큐 자동 흰 테두리 두께(최종 출력 px 기준): 일반 스티커 / 메인 / 탭
+const OGQ_BORDER = { sticker: 8, main: 3, tab: 1 };
+const OGQ_MAIN = { w: 240, h: 240 };
+const OGQ_TAB  = { w: 96, h: 74 };
 
 const $ = (id) => document.getElementById(id);
 const barEl = $('bar');
@@ -343,7 +371,9 @@ const slots = {
 };
 
 let extractedPngs = [];   // 카카오: 36칸 전부 {name, blob, dataUrl, isEmpty, isIcon, num, canvas}
-let ogqResults = [];      // 오지큐: 스티커칸 {name, blob, dataUrl, isEmpty, num}
+let ogqResults = [];      // 오지큐: 일반 스티커칸 {name, blob, dataUrl, isEmpty, num}
+let ogqMain = null;       // 오지큐 메인(240×240) {blob, dataUrl} — 35번 칸
+let ogqTab = null;        // 오지큐 탭(96×74) {blob, dataUrl} — 36번 칸
 
 function log(msg, cls = '') {
   if (cls === 'err') {
@@ -518,6 +548,62 @@ async function squareToMaxed(src, size, warnKB) {
   return { blob, dataUrl: c.toDataURL('image/png'), canvas: c, kb: blob.size / 1024 };
 }
 
+// 알파 실루엣을 r px 원형 팽창시켜 흰 외곽선 생성 후 원본 합성.
+// pad=true면 사방 r px 확장된 캔버스 반환(메인·탭), false면 원본 크기 유지하며 가장자리 클립(스티커).
+function addWhiteBorder(src, r, pad) {
+  if (r <= 0) return src;
+  const off = pad ? r : 0;
+  const out = document.createElement('canvas');
+  out.width = src.width + off * 2;
+  out.height = src.height + off * 2;
+  const ctx = out.getContext('2d');
+
+  // 원본 모양 그대로의 흰색 실루엣
+  const sil = document.createElement('canvas');
+  sil.width = src.width; sil.height = src.height;
+  const sctx = sil.getContext('2d');
+  sctx.drawImage(src, 0, 0);
+  sctx.globalCompositeOperation = 'source-in';
+  sctx.fillStyle = '#ffffff';
+  sctx.fillRect(0, 0, sil.width, sil.height);
+
+  // 원형 마스크 범위로 오프셋 스탬프 → 팽창
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      if (dx * dx + dy * dy <= r * r) ctx.drawImage(sil, off + dx, off + dy);
+    }
+  }
+  // 원본 그림 위에 합성
+  ctx.drawImage(src, off, off);
+  return out;
+}
+
+// 그림을 트림→비율유지로 (캔버스-테두리) 안에 꽉 차게 확대 후 r px 흰 테두리 적용, 가운데 배치 — 메인·탭용
+async function fitWithBorder(src, cw, ch, r) {
+  const bb = getOpaqueBBox(src) || { x: 0, y: 0, w: src.width, h: src.height };
+  const scale = Math.min((cw - 2 * r) / bb.w, (ch - 2 * r) / bb.h);
+  const dw = Math.max(1, Math.round(bb.w * scale));
+  const dh = Math.max(1, Math.round(bb.h * scale));
+
+  const art = document.createElement('canvas');
+  art.width = dw; art.height = dh;
+  const actx = art.getContext('2d');
+  actx.imageSmoothingEnabled = true; actx.imageSmoothingQuality = 'high';
+  actx.drawImage(src, bb.x, bb.y, bb.w, bb.h, 0, 0, dw, dh);
+
+  const bordered = addWhiteBorder(art, r, true);
+
+  const out = document.createElement('canvas');
+  out.width = cw; out.height = ch;
+  out.getContext('2d').drawImage(
+    bordered,
+    Math.round((cw - bordered.width) / 2),
+    Math.round((ch - bordered.height) / 2),
+  );
+  const blob = await canvasToBlob(out);
+  return { blob, dataUrl: out.toDataURL('image/png'), canvas: out };
+}
+
 // ===== 메인 추출: 두 슬롯에서 각각 36칸 자르기 =====
 $('generate').addEventListener('click', async () => {
   if (!slots.kakao.bitmap && !slots.ogq.bitmap) return;
@@ -528,6 +614,8 @@ $('generate').addEventListener('click', async () => {
   $('ogqGrid').innerHTML = '';
   extractedPngs = [];
   ogqResults = [];
+  ogqMain = null;
+  ogqTab = null;
   setProgress(0);
 
   try {
@@ -547,7 +635,7 @@ $('generate').addEventListener('click', async () => {
     await showResults();
     setProgress(1);
 
-    $('downloadKakao').disabled = !extractedPngs.some(p => !p.isEmpty) && !ogqResults.some(p => !p.isEmpty);
+    $('downloadKakao').disabled = !extractedPngs.some(p => !p.isEmpty) && !ogqResults.some(p => !p.isEmpty) && !ogqMain && !ogqTab;
   } catch (e) {
     log(`❌ 오류: ${e.message}`, 'err');
     console.error(e);
@@ -602,24 +690,27 @@ async function cropAndScaleOGQ(progStart, progEnd) {
   const safeBase = baseName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
 
   const total = ACTIVE_PRESET.coords.length; // 36
-  const ICON = total - 1;                    // 35 = 36번 칸(탭 소스)
+  const MAIN = total - 2;                     // 34 = 35번 칸(메인)
+  const TAB = total - 1;                      // 35 = 36번 칸(탭)
+  const mid = progStart + (progEnd - progStart) * 0.85;
   let seq = 0;
 
-  for (let i = 0; i < ICON; i++) {           // 스티커칸만 (36번 아이콘 제외)
-    const square = cropBox(img, i);          // 정사각 원본 (메인 생성용으로 보관)
+  for (let i = 0; i < MAIN; i++) {            // 1~34번 = 일반 스티커
+    const square = cropBox(img, i);
     const isEmpty = isCanvasEmpty(square);
 
-    // 640×640 업스케일 → 740×640 캔버스 가운데 배치
+    // 640×640 풀스케일 (기존 방식 유지) → 8px 흰 테두리 → 740×640 가운데 배치
     const scaled = document.createElement('canvas');
     scaled.width = OGQ.scaleTo; scaled.height = OGQ.scaleTo;
     const sctx = scaled.getContext('2d');
     sctx.imageSmoothingEnabled = true;
     sctx.imageSmoothingQuality = 'high';
     sctx.drawImage(square, 0, 0, OGQ.scaleTo, OGQ.scaleTo);
+    const bordered = isEmpty ? scaled : addWhiteBorder(scaled, OGQ_BORDER.sticker, false);
 
     const out = document.createElement('canvas');
     out.width = OGQ.w; out.height = OGQ.h;
-    out.getContext('2d').drawImage(scaled, Math.round((OGQ.w - OGQ.scaleTo) / 2), 0);
+    out.getContext('2d').drawImage(bordered, Math.round((OGQ.w - OGQ.scaleTo) / 2), 0);
 
     let name;
     if (!isEmpty) { seq++; name = `${safeBase}_${String(seq).padStart(2, '0')}_오지큐.png`; }
@@ -627,8 +718,15 @@ async function cropAndScaleOGQ(progStart, progEnd) {
     const blob = await canvasToBlob(out);
     ogqResults.push({ name, blob, dataUrl: out.toDataURL('image/png'), isEmpty, num: isEmpty ? null : seq });
 
-    setProgress(progStart + (i + 1) / ICON * (progEnd - progStart));
+    setProgress(progStart + (i + 1) / MAIN * (mid - progStart));
   }
+
+  // 35번 = 메인(240×240, 3px), 36번 = 탭(96×74, 1px) — 트림 후 꽉 차게 + 흰 테두리
+  const mainSq = cropBox(img, MAIN);
+  ogqMain = isCanvasEmpty(mainSq) ? null : await fitWithBorder(mainSq, OGQ_MAIN.w, OGQ_MAIN.h, OGQ_BORDER.main);
+  const tabSq = cropBox(img, TAB);
+  ogqTab = isCanvasEmpty(tabSq) ? null : await fitWithBorder(tabSq, OGQ_TAB.w, OGQ_TAB.h, OGQ_BORDER.tab);
+  setProgress(progEnd);
 }
 
 function canvasToBlob(canvas) {
@@ -673,15 +771,26 @@ async function showResults() {
 
   // ── 오지큐 결과 ──
   const ogqGrid = $('ogqGrid');
-  const hasOgq = ogqResults.some(p => !p.isEmpty);
+  const hasOgq = ogqResults.some(p => !p.isEmpty) || !!ogqMain || !!ogqTab;
   $('tab-ogq').style.display = hasOgq ? '' : 'none';
   $('tab-ogq').classList.toggle('stacked', hasKakao && hasOgq);
   if (hasOgq) {
     const filled = ogqResults.filter(p => !p.isEmpty).length;
     $('ogqStats').innerHTML = `
       <span>🟢 스티커 <strong>${filled}종</strong> · ${OGQ.w}×${OGQ.h}</span>
-      <span>📐 <strong>${ACTIVE_PRESET.grid.rows}행 × ${ACTIVE_PRESET.grid.cols}열</strong></span>
+      <span>🖼️ 메인 <strong>${ogqMain ? '있음' : '없음'}</strong></span>
+      <span>🔖 탭 <strong>${ogqTab ? '있음' : '없음'}</strong></span>
     `;
+    // 메인·탭 미리보기 (35·36번 자동 변환 결과)
+    $('ogqExtras').innerHTML = `
+      <div class="xbox">
+        <div class="label">🖼️ 메인 ${OGQ_MAIN.w}×${OGQ_MAIN.h} <span style="color:#9ca3af">(35번·테두리 ${OGQ_BORDER.main})</span></div>
+        <div class="frame" style="width:120px;height:120px">${ogqMain ? `<img src="${ogqMain.dataUrl}" width="120" height="120" alt="메인">` : '<div class="dim">35번 칸<br>그림 없음</div>'}</div>
+      </div>
+      <div class="xbox">
+        <div class="label">🔖 탭 ${OGQ_TAB.w}×${OGQ_TAB.h} <span style="color:#9ca3af">(36번·테두리 ${OGQ_BORDER.tab})</span></div>
+        <div class="frame" style="width:96px;height:74px">${ogqTab ? `<img src="${ogqTab.dataUrl}" width="96" height="74" alt="탭">` : '<div class="dim">36번 칸<br>그림 없음</div>'}</div>
+      </div>`;
     ogqGrid.className = 'grid-preview ogq';
     ogqGrid.style.gridTemplateColumns = `repeat(${ACTIVE_PRESET.grid.cols}, 1fr)`;
     ogqGrid.innerHTML = '';
@@ -700,7 +809,7 @@ async function showResults() {
 // ===== 다운로드: 채워진 슬롯에 맞춰 자동 (카카오→카카오, 오지큐→오지큐) =====
 $('downloadKakao').addEventListener('click', async () => {
   const hasKakao = extractedPngs.some(p => !p.isEmpty);
-  const hasOgq = ogqResults.some(p => !p.isEmpty);
+  const hasOgq = ogqResults.some(p => !p.isEmpty) || ogqMain || ogqTab;
   if (!hasKakao && !hasOgq) return;
 
   // 카카오 ZIP (시안 + 아이콘)
@@ -711,12 +820,14 @@ $('downloadKakao').addEventListener('click', async () => {
     extractedPngs.filter(p => !p.isEmpty && p.blob).forEach(p => zip.file(p.name, p.blob));
     saveAs(await zip.generateAsync({ type: 'blob' }), `${base}.zip`);
   }
-  // 오지큐 ZIP (스티커)
+  // 오지큐 ZIP (스티커 + 메인 + 탭)
   if (hasOgq) {
     const base = ($('zipName').value || slots.ogq.fileName || slots.kakao.fileName || 'onestop')
       .trim().replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
     const zip = new JSZip();
     ogqResults.filter(p => !p.isEmpty).forEach(p => zip.file(p.name, p.blob));
+    if (ogqMain) zip.file(`${base}_메인.png`, ogqMain.blob);
+    if (ogqTab) zip.file(`${base}_탭.png`, ogqTab.blob);
     saveAs(await zip.generateAsync({ type: 'blob' }), `${base}_오지큐.zip`);
   }
 });
