@@ -201,6 +201,24 @@
     background: #f9fafb; border-radius: 8px; line-height: 1.6;
   }
 
+  /* 모드 전환 스위치 */
+  .mode-switch {
+    display: inline-flex; gap: 4px; margin: 4px 0 18px;
+    padding: 4px; background: #eef0f3; border-radius: 999px;
+  }
+  .mode-btn {
+    padding: 8px 18px; border: 0; border-radius: 999px; cursor: pointer;
+    font-size: 13px; font-weight: 700; color: #6b7280; background: transparent;
+    transition: .15s;
+  }
+  .mode-btn.active { background: #fff; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+
+  /* 모드별 노출/숨김 */
+  body[data-mode="mini"] .only-onestop { display: none; }
+  body[data-mode="onestop"] .only-mini { display: none; }
+  body[data-mode="mini"] .slot-card[data-slot="ogq"] { display: none; }
+  body[data-mode="mini"] .slots-grid { grid-template-columns: 1fr; }
+
   /* 아이콘 셀(36번) — 카카오 전용 */
   .cell.icon .num { background: rgba(139, 92, 246, .92); }
 
@@ -239,18 +257,24 @@
 <body>
 
 <h1>[쥐냥] 원스톱 png 메이커_클튜</h1>
-<div class="sub">클립스튜디오용 - 가이드 PNG 2장 (카카오/오지큐) → 박스별 png 저장</div>
+<div class="sub" id="subText">클립스튜디오용 - 가이드 PNG 2장 (카카오/오지큐) → 박스별 png 저장</div>
 <span class="edition-badge">🎨 CLIP STUDIO EDITION</span>
+
+<div class="mode-switch">
+  <button class="mode-btn active" data-mode="onestop">일반</button>
+  <button class="mode-btn" data-mode="mini">미니</button>
+</div>
 
 <div class="card notice">
   <h2>📝 사용 방법</h2>
   <ul class="notice-list">
-    <li><strong>반드시 쥐냥작가의 원스톱 가이드만 가능합니다.</strong></li>
+    <li><strong>반드시 쥐냥작가의 가이드만 가능합니다.</strong></li>
     <li><strong>가이드와 필요없는 레이어 눈은 반드시 꺼주세요.</strong></li>
-    <li><strong>카카오용 PNG</strong>: 글자에 테두리 적용한 버전 · 맨 마지막 칸은 아이콘으로 자동 변환</li>
-    <li><strong>오지큐용 PNG</strong>: <strong>테두리 없는 원본</strong> (도구가 흰 테두리 자동 적용)</li>
-    <li>오지큐는 <strong>35번 = 메인</strong>(240×240), <strong>36번 = 탭</strong>(96×74)으로 자동 변환됩니다.</li>
-    <li>오지큐 흰 테두리 두께 — <strong>시안 8px · 메인 3px · 탭 1px</strong></li>
+    <li class="only-onestop"><strong>카카오용 PNG</strong>: 글자에 테두리 적용한 버전 · 맨 마지막 칸은 아이콘으로 자동 변환</li>
+    <li class="only-onestop"><strong>오지큐용 PNG</strong>: <strong>테두리 없는 원본</strong> (도구가 흰 테두리 자동 적용)</li>
+    <li class="only-onestop">오지큐는 <strong>35번 = 메인</strong>(240×240), <strong>36번 = 탭</strong>(96×74)으로 자동 변환됩니다.</li>
+    <li class="only-onestop">오지큐 흰 테두리 두께 — <strong>시안 8px · 메인 3px · 탭 1px</strong></li>
+    <li class="only-mini"><strong>미니</strong>: 카카오용 PNG만 넣으면 그림 있는 칸을 <strong>180×180</strong>으로 번호 붙여 자동 추출합니다.</li>
   </ul>
 </div>
 
@@ -309,7 +333,7 @@
 
   <!-- 카카오 결과 -->
   <div class="tab-pane" id="tab-kakao" style="display:none">
-    <div class="result-section-title">🟡 카카오 (360×360)</div>
+    <div class="result-section-title" id="kakaoTitle">🟡 카카오 (360×360)</div>
     <div id="kakaoContent">
       <div class="stats" id="stats"></div>
       <div class="grid-preview" id="grid"></div>
@@ -337,7 +361,8 @@
 
 <script>
 // ===== 진영님 원스톱 가이드 좌표 (PSD에서 추출, 6×6=36칸 360×360) =====
-const ACTIVE_PRESET = {
+// ===== 원스톱 가이드 (6×6=36칸, 360 기준) =====
+const ONESTOP_PRESET = {
   name: "원스톱 36칸 (6×6)",
   canvas: { w: 2700, h: 2700 },
   grid: { rows: 6, cols: 6 },
@@ -351,6 +376,32 @@ const ACTIVE_PRESET = {
     {x:62,y:2277}, {x:505,y:2277}, {x:948,y:2277}, {x:1392,y:2277}, {x:1835,y:2277}, {x:2278,y:2277},
   ],
 };
+
+// ===== 미니 가이드 (6×8=48칸, 182 셀, 1300×1650) — 검출 좌표 =====
+const MINI_PRESET = {
+  name: "미니 48칸 (6×8)",
+  canvas: { w: 1300, h: 1650 },
+  grid: { rows: 8, cols: 6 },
+  size: 182,
+  coords: [
+    {x:102,y:96},   {x:284,y:96},   {x:466,y:96},   {x:648,y:96},   {x:830,y:96},   {x:1012,y:96},
+    {x:102,y:278},  {x:284,y:278},  {x:466,y:278},  {x:648,y:278},  {x:830,y:278},  {x:1012,y:278},
+    {x:102,y:460},  {x:284,y:460},  {x:466,y:460},  {x:648,y:460},  {x:830,y:460},  {x:1012,y:460},
+    {x:102,y:642},  {x:284,y:642},  {x:466,y:642},  {x:648,y:642},  {x:830,y:642},  {x:1012,y:642},
+    {x:102,y:824},  {x:284,y:824},  {x:466,y:824},  {x:648,y:824},  {x:830,y:824},  {x:1012,y:824},
+    {x:102,y:1006}, {x:284,y:1006}, {x:466,y:1006}, {x:648,y:1006}, {x:830,y:1006}, {x:1012,y:1006},
+    {x:102,y:1188}, {x:284,y:1188}, {x:466,y:1188}, {x:648,y:1188}, {x:830,y:1188}, {x:1012,y:1188},
+    {x:102,y:1370}, {x:284,y:1370}, {x:466,y:1370}, {x:648,y:1370}, {x:830,y:1370}, {x:1012,y:1370},
+  ],
+};
+
+// 모드별 동작 정의. ACTIVE_PRESET는 모드 전환 시 교체(기존 코드 호환).
+const MODES = {
+  onestop: { preset: ONESTOP_PRESET, outSize: null, hasOgq: true,  hasIcon: true },
+  mini:    { preset: MINI_PRESET,    outSize: 180,  hasOgq: false, hasIcon: false },
+};
+let mode = 'onestop';
+let ACTIVE_PRESET = MODES[mode].preset;
 
 const OGQ = { w: 740, h: 640, scaleTo: 640 };
 // 오지큐 자동 흰 테두리 두께(최종 출력 px 기준): 일반 스티커 / 메인 / 탭
@@ -499,6 +550,34 @@ function updateGenerateButton() {
   $('generate').disabled = !slots.kakao.bitmap && !slots.ogq.bitmap;
 }
 
+// ===== 모드 전환 (원스톱 / 미니) =====
+function applyMode(next) {
+  mode = next;
+  ACTIVE_PRESET = MODES[mode].preset;
+  document.body.dataset.mode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.mode === mode));
+
+  // 모드별 안내 문구
+  $('subText').textContent = mode === 'mini'
+    ? '클립스튜디오용 - 미니 가이드 PNG → 180×180 번호 png 저장'
+    : '클립스튜디오용 - 가이드 PNG 2장 (카카오/오지큐) → 박스별 png 저장';
+  const kHint = document.querySelector('.slot-card[data-slot="kakao"] .slot-hint');
+  if (kHint) kHint.textContent = mode === 'mini'
+    ? '미니 가이드에 그린 PNG (180×180 추출)'
+    : '글자에 테두리 적용한 PNG';
+
+  // 모드 바뀌면 슬롯/결과 초기화 (이전 가이드 해상도 혼선 방지)
+  clearSlot('kakao');
+  clearSlot('ogq');
+  extractedPngs = []; ogqResults = []; ogqMain = null; ogqTab = null;
+  resultCardEl.style.display = 'none';
+}
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => applyMode(btn.dataset.mode));
+});
+applyMode('onestop');
+
 // ===== 공통: 프리셋 좌표로 박스 1칸 정사각 crop =====
 function cropBox(img, i) {
   const ratioW = img.width / ACTIVE_PRESET.canvas.w;
@@ -546,6 +625,16 @@ async function squareToMaxed(src, size, warnKB) {
     console.warn(`⚠️ 아이콘 ${(blob.size / 1024).toFixed(1)}KB > ${warnKB}KB`);
   }
   return { blob, dataUrl: c.toDataURL('image/png'), canvas: c, kb: blob.size / 1024 };
+}
+
+// 캔버스를 w×h로 리사이즈 (미니 모드 180×180 강제 출력용)
+function resizeCanvas(src, w, h) {
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(src, 0, 0, w, h);
+  return c;
 }
 
 // 알파 실루엣을 r px 원형 팽창시켜 흰 외곽선 생성 후 원본 합성.
@@ -626,8 +715,8 @@ $('generate').addEventListener('click', async () => {
       await cropFromSlot('kakao', 0.05, 0.5);
     }
 
-    // 2) 오지큐 슬롯 처리 (있으면) — 스티커 740×640만
-    if (slots.ogq.bitmap) {
+    // 2) 오지큐 슬롯 처리 (원스톱 모드 + 슬롯 채워짐일 때만)
+    if (MODES[mode].hasOgq && slots.ogq.bitmap) {
       await cropAndScaleOGQ(0.5, 0.95);
     }
     setProgress(0.95);
@@ -653,16 +742,17 @@ async function cropFromSlot(slotName, progStart, progEnd) {
   const baseName = customZip || slot.fileName || 'onestop';
   const safeBase = baseName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.zip$/i, '');
 
-  const total = ACTIVE_PRESET.coords.length; // 36
-  const ICON = total - 1;                    // 35 = 36번 칸(아이콘)
+  const cfg = MODES[mode];
+  const total = ACTIVE_PRESET.coords.length;
+  const ICON = total - 1;                    // 원스톱: 맨 마지막 칸 = 아이콘
   let seq = 0;
 
   for (let i = 0; i < total; i++) {
     const c = cropBox(img, i);
     const isEmpty = isCanvasEmpty(c);
 
-    if (i === ICON) {
-      // 36번 = 아이콘: 그림 있으면 78×78(≤16KB) PNG로 변환
+    if (cfg.hasIcon && i === ICON) {
+      // 아이콘: 그림 있으면 78×78(≤16KB) PNG로 변환 (원스톱 전용)
       if (!isEmpty) {
         const icon = await squareToMaxed(c, 78, 16);
         extractedPngs.push({ name: `${safeBase}_아이콘.png`, blob: icon.blob, dataUrl: icon.dataUrl, isEmpty: false, isIcon: true, num: null, canvas: icon.canvas });
@@ -670,11 +760,13 @@ async function cropFromSlot(slotName, progStart, progEnd) {
         extractedPngs.push({ name: `${safeBase}_아이콘.png`, blob: null, dataUrl: c.toDataURL('image/png'), isEmpty: true, isIcon: true, num: null, canvas: c });
       }
     } else {
+      // 일반 시안. 미니 모드면 180×180 강제 리사이즈.
+      const outCanvas = cfg.outSize ? resizeCanvas(c, cfg.outSize, cfg.outSize) : c;
       let name;
       if (!isEmpty) { seq++; name = `${safeBase}_${String(seq).padStart(2, '0')}.png`; }
       else { name = `${safeBase}_빈${String(i + 1).padStart(2, '0')}.png`; }
-      const blob = await canvasToBlob(c);
-      extractedPngs.push({ name, blob, dataUrl: c.toDataURL('image/png'), isEmpty, isIcon: false, num: isEmpty ? null : seq, canvas: c });
+      const blob = await canvasToBlob(outCanvas);
+      extractedPngs.push({ name, blob, dataUrl: outCanvas.toDataURL('image/png'), isEmpty, isIcon: false, num: isEmpty ? null : seq, canvas: outCanvas });
     }
 
     setProgress(progStart + (i + 1) / total * (progEnd - progStart));
@@ -749,13 +841,17 @@ async function showResults() {
   const hasKakao = extractedPngs.some(p => !p.isEmpty);
   $('tab-kakao').style.display = hasKakao ? '' : 'none';
   if (hasKakao) {
+    const cfg = MODES[mode];
     const filled = extractedPngs.filter(p => !p.isEmpty && !p.isIcon).length;
     const hasIcon = extractedPngs.some(p => p.isIcon && !p.isEmpty);
+    const outPx = cfg.outSize || ACTIVE_PRESET.size;
     statsEl.innerHTML = `
       <span>🎨 시안 <strong>${filled}장</strong></span>
-      <span>⭐ 아이콘 <strong>${hasIcon ? '있음 · 78×78' : '없음'}</strong></span>
-      <span>📏 <strong>${ACTIVE_PRESET.size} × ${ACTIVE_PRESET.size} px</strong></span>
+      ${cfg.hasIcon ? `<span>⭐ 아이콘 <strong>${hasIcon ? '있음 · 78×78' : '없음'}</strong></span>` : ''}
+      <span>📏 <strong>${outPx} × ${outPx} px</strong></span>
     `;
+    const kt = $('kakaoTitle');
+    if (kt) kt.textContent = `🟡 카카오 (${outPx}×${outPx})`;
     gridEl.style.gridTemplateColumns = `repeat(${ACTIVE_PRESET.grid.cols}, 1fr)`;
     gridEl.innerHTML = '';
     extractedPngs.forEach(p => {
