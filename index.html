@@ -60,12 +60,50 @@
   }
   input[type=number] { -moz-appearance: number-input; }
 
-  .card.notice { background: #fffbeb; border: 1px solid #fde68a; }
-  .card.notice h2 { color: #92400e; }
-  .notice-list { margin: 0; padding-left: 18px; color: #78350f; font-size: 13px; line-height: 1.8; }
-  .notice-list li { margin: 2px 0; }
-  .notice-list strong { color: #451a03; }
-  .notice-list code { background: #fef3c7; padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: "SF Mono", Menlo, monospace; color: #78350f; }
+  /* 슬림 안내 바 (클릭하면 팝업) — 매직팟 핑크 톤 통일 */
+  .notice-bar {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 13px 16px; background: #fff0f3; border: 1.5px solid #ffcdd2;
+    border-radius: 12px; cursor: pointer; margin-bottom: 18px; transition: .15s;
+  }
+  .notice-bar:hover { background: #fce4ec; }
+  .notice-bar:active { transform: scale(1.01); }
+  .notice-bar-text { font-size: 13px; font-weight: 700; color: #e91e63; }
+
+  /* 안내 팝업 */
+  .popup-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4);
+    z-index: 1000; align-items: center; justify-content: center; padding: 16px;
+  }
+  .popup-overlay.active { display: flex; }
+  .popup-box {
+    background: #fff; border-radius: 16px; padding: 24px 22px 18px; width: 100%;
+    max-width: 480px; max-height: 82vh; overflow: hidden; position: relative;
+    box-shadow: 0 8px 40px rgba(0,0,0,.2); display: flex; flex-direction: column;
+  }
+  .popup-title { font-size: 15px; font-weight: 800; color: #e91e63; text-align: center; margin-bottom: 14px; }
+  .popup-close { position: absolute; top: 14px; right: 16px; background: none; border: 0; font-size: 20px; color: #9ca3af; cursor: pointer; }
+  .popup-close:hover { color: #374151; }
+  .popup-tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .popup-tab {
+    flex: 1; padding: 8px 10px; border: 2px solid #e5e7eb; border-radius: 8px;
+    background: #fff; color: #9ca3af; font-size: 12px; font-weight: 700; cursor: pointer;
+    text-align: center; font-family: inherit; transition: .15s;
+  }
+  .popup-tab.active { border-color: #ffcdd2; background: #fff0f3; color: #e91e63; }
+  .popup-scroll { flex: 1; overflow-y: auto; font-size: 12.5px; color: #4b5563; line-height: 1.75; }
+  .popup-scroll .sec-title { font-weight: 800; font-size: 13px; margin: 16px 0 5px; }
+  .popup-scroll .sec-title:first-child { margin-top: 0; }
+  .popup-scroll .sec-title .tag { font-weight: 600; color: #9ca3af; font-size: 11px; }
+  .popup-scroll ul { margin: 0; padding-left: 17px; }
+  .popup-scroll li { margin: 3px 0; }
+  .popup-scroll b { color: #1f2937; }
+  .ex-box {
+    border-radius: 10px; padding: 11px 13px; font-size: 11.5px; line-height: 1.9;
+    margin: 8px 0 4px;
+  }
+  .ex-box.green { background: #f0fdf4; border: 1.5px dashed #86efac; }
+  .ex-box.yellow { background: #fffbeb; border: 1.5px dashed #fcd34d; }
 
   .slots-grid {
     display: grid;
@@ -213,6 +251,23 @@
   }
   .mode-btn.active { background: #fff; color: #111827; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 
+  /* 오지큐 테두리 두께 스테퍼 (현재 값만 표시) */
+  .border-stepper {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px; background: #eef0f3; border-radius: 999px;
+  }
+  .bd-step {
+    width: 32px; height: 32px; border: 0; border-radius: 50%; cursor: pointer;
+    font-size: 18px; font-weight: 700; line-height: 1; color: #065f46; background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,.1); transition: .15s;
+  }
+  .bd-step:hover:not(:disabled) { background: #d1fae5; }
+  .bd-step:disabled { opacity: .35; cursor: default; }
+  .bd-value {
+    min-width: 46px; text-align: center; font-size: 15px; font-weight: 800; color: #065f46;
+  }
+  .bd-value small { font-size: 11px; font-weight: 700; color: #6b7280; }
+
   /* 모드별 노출/숨김 */
   body[data-mode="mini"] .only-onestop { display: none; }
   body[data-mode="onestop"] .only-mini { display: none; }
@@ -221,6 +276,9 @@
 
   /* 아이콘 셀(36번) — 카카오 전용 */
   .cell.icon .num { background: rgba(139, 92, 246, .92); }
+  /* 35번 = 오지큐 메인 전용 (카카오에선 제외) */
+  .cell.main { opacity: .55; }
+  .cell.main .num { background: rgba(5, 150, 105, .92); }
 
   /* 오지큐 메인·탭 미리보기 */
   .ogq-extras {
@@ -265,17 +323,65 @@
   <button class="mode-btn" data-mode="mini">미니</button>
 </div>
 
-<div class="card notice">
-  <h2>📝 사용 방법</h2>
-  <ul class="notice-list">
-    <li><strong>반드시 쥐냥작가의 가이드만 가능합니다.</strong></li>
-    <li><strong>가이드와 필요없는 레이어 눈은 반드시 꺼주세요.</strong></li>
-    <li class="only-onestop"><strong>카카오용 PNG</strong>: 글자에 테두리 적용한 버전 · 맨 마지막 칸은 아이콘으로 자동 변환</li>
-    <li class="only-onestop"><strong>오지큐용 PNG</strong>: <strong>테두리 없는 원본</strong> (도구가 흰 테두리 자동 적용)</li>
-    <li class="only-onestop">오지큐는 <strong>35번 = 메인</strong>(240×240), <strong>36번 = 탭</strong>(96×74)으로 자동 변환됩니다.</li>
-    <li class="only-onestop">오지큐 흰 테두리 두께 — <strong>시안 8px · 메인 3px · 탭 1px</strong></li>
-    <li class="only-mini"><strong>미니</strong>: 카카오용 PNG만 넣으면 그림 있는 칸을 <strong>180×180</strong>으로 번호 붙여 자동 추출합니다.</li>
-  </ul>
+<div class="notice-bar" onclick="openNoticePopup()">
+  <span class="notice-bar-text">📝 사용하기 전에 꼭 확인하세요 ▸</span>
+</div>
+
+<!-- 안내 팝업 -->
+<div class="popup-overlay" id="noticePopup" onclick="if(event.target===this)closeNoticePopup()">
+  <div class="popup-box">
+    <button class="popup-close" onclick="closeNoticePopup()">✕</button>
+    <div class="popup-title">📝 사용하기 전에 꼭 확인하세요</div>
+
+    <div class="popup-tabs">
+      <button class="popup-tab active" id="popTab1" onclick="switchPopupTab(1)">🎯 사용 방법</button>
+      <button class="popup-tab" id="popTab2" onclick="switchPopupTab(2)">⚠️ 꼭 지켜주세요</button>
+    </div>
+
+    <div class="popup-scroll">
+      <!-- 탭 1: 사용 방법 -->
+      <div id="popContent1">
+        <p style="margin:0 0 14px;color:#db2777;font-weight:700;">
+          쥐냥작가 가이드에 그린 PNG를 넣으면, 칸마다 잘라서 카카오·오지큐 규격에 맞는 png로 자동 저장돼요.
+        </p>
+
+        <div class="sec-title" style="color:#0e9f6e;">🟢 일반 모드 <span class="tag">· 카카오 / 오지큐 (각각 선택)</span></div>
+        <ul>
+          <li><b>카카오용 PNG</b> — 글자에 <b>테두리를 이미 입힌</b> 버전을 넣어요.</li>
+          <li><b>오지큐용 PNG</b> — <b>테두리 없는 원본</b>을 넣으면, 도구가 흰 테두리를 <b>자동으로</b> 둘러줘요.</li>
+          <li>둘 중 하나만 넣어도 되고, 둘 다 넣으면 한 번에 양쪽 다 만들어져요.</li>
+        </ul>
+        <div class="ex-box yellow">
+          <b style="color:#92400e;">🟡 카카오 — 36칸 중 특별한 칸</b><br>
+          • <b>36번 칸</b> = 아이콘(78×78)으로 자동 변환<br>
+          • <b>35번 칸</b> = 카카오에선 <b>제외</b> (오지큐 메인 전용 칸이라서)
+        </div>
+        <div class="ex-box green">
+          <b style="color:#0e9f6e;">🟢 오지큐 — 칸별 자동 변환</b><br>
+          • <b>1~34번</b> = 일반 스티커 740×640<br>
+          • <b>35번</b> = 메인 240×240<br>
+          • <b>36번</b> = 탭 96×74<br>
+          • 흰 테두리 두께 — 일반 스티커 <b>8px</b> · 메인 3px · 탭 1px <span style="color:#9ca3af;">(스티커 두께는 설정에서 조절 가능)</span>
+        </div>
+
+        <div class="sec-title" style="color:#2563eb;">🔵 미니 모드 <span class="tag">· 카카오 전용</span></div>
+        <ul>
+          <li><b>카카오용 PNG 1장</b>만 넣으면 돼요.</li>
+          <li>그림이 있는 칸만 골라 <b>180×180</b> 크기로, 번호를 붙여 자동 저장해요.</li>
+        </ul>
+      </div>
+
+      <!-- 탭 2: 주의사항 -->
+      <div id="popContent2" style="display:none;">
+        <ul style="line-height:1.95;">
+          <li><b>반드시 쥐냥작가의 가이드</b>에 그린 PNG만 사용하세요. (칸 위치가 맞아야 정확히 잘려요)</li>
+          <li>가이드선·배경처럼 <b>필요 없는 레이어는 눈을 끄거나 삭제</b>한 뒤 PNG로 저장하세요.</li>
+          <li>카카오는 <b>테두리를 입힌 버전</b>, 오지큐는 <b>테두리 없는 원본</b> — 헷갈리지 않게 구분해서 넣으세요.</li>
+          <li><b>안 그린 빈 칸은 자동으로 제외</b>되니, 비워둬도 괜찮아요.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="card">
@@ -285,6 +391,15 @@
     <input type="text" id="zipName" placeholder="비워두면 자동: 카카오 PNG 파일명"
            style="flex:1;min-width:240px;padding:8px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px">
     <span style="color:#6b7280;font-size:12px">.zip 자동</span>
+  </div>
+  <div class="row only-onestop">
+    <label>오지큐 테두리</label>
+    <div class="border-stepper">
+      <button class="bd-step" id="bdMinus" type="button" aria-label="얇게">−</button>
+      <span class="bd-value" id="bdValue">8<small>px</small></span>
+      <button class="bd-step" id="bdPlus" type="button" aria-label="두껍게">+</button>
+    </div>
+    <span style="color:#6b7280;font-size:12px">일반 스티커 흰 테두리 · (메인 3·탭 1은 고정)</span>
   </div>
   <div class="row" style="color:#6b7280;font-size:12px;line-height:1.6;display:block">
     🤖 <strong>그림이 있는 박스만 자동 추출</strong>합니다 (빈 박스 제외).
@@ -404,8 +519,9 @@ let mode = 'onestop';
 let ACTIVE_PRESET = MODES[mode].preset;
 
 const OGQ = { w: 740, h: 640, scaleTo: 640 };
-// 오지큐 자동 흰 테두리 두께(최종 출력 px 기준): 일반 스티커 / 메인 / 탭
-const OGQ_BORDER = { sticker: 8, main: 3, tab: 1 };
+// 오지큐 자동 흰 테두리 두께(최종 출력 px 기준): 메인 / 탭은 고정
+// 일반 스티커는 ogqStickerBorder(5~12, 기본 8) 토글로 별도 조절
+const OGQ_BORDER = { main: 3, tab: 1 };
 const OGQ_MAIN = { w: 240, h: 240 };
 const OGQ_TAB  = { w: 96, h: 74 };
 
@@ -425,6 +541,7 @@ let extractedPngs = [];   // 카카오: 36칸 전부 {name, blob, dataUrl, isEmp
 let ogqResults = [];      // 오지큐: 일반 스티커칸 {name, blob, dataUrl, isEmpty, num}
 let ogqMain = null;       // 오지큐 메인(240×240) {blob, dataUrl} — 35번 칸
 let ogqTab = null;        // 오지큐 탭(96×74) {blob, dataUrl} — 36번 칸
+let ogqStickerBorder = 8; // 오지큐 일반 스티커 흰 테두리 두께(px) — 토글로 5~12 선택, 기본 8
 
 function log(msg, cls = '') {
   if (cls === 'err') {
@@ -577,6 +694,35 @@ document.querySelectorAll('.mode-btn').forEach(btn => {
   btn.addEventListener('click', () => applyMode(btn.dataset.mode));
 });
 applyMode('onestop');
+
+// ===== 안내 팝업 =====
+function openNoticePopup() { $('noticePopup').classList.add('active'); }
+function closeNoticePopup() { $('noticePopup').classList.remove('active'); }
+function switchPopupTab(n) {
+  $('popTab1').classList.toggle('active', n === 1);
+  $('popTab2').classList.toggle('active', n === 2);
+  $('popContent1').style.display = n === 1 ? '' : 'none';
+  $('popContent2').style.display = n === 2 ? '' : 'none';
+}
+
+// ===== 오지큐 테두리 두께 스테퍼 (5~12, 기본 8) =====
+(function initOgqBorderStepper() {
+  const minus = $('bdMinus'), plus = $('bdPlus'), val = $('bdValue');
+  if (!minus || !plus || !val) return;
+  const MIN = 5, MAX = 12;
+  function render() {
+    val.innerHTML = ogqStickerBorder + '<small>px</small>';
+    minus.disabled = ogqStickerBorder <= MIN;
+    plus.disabled = ogqStickerBorder >= MAX;
+  }
+  minus.addEventListener('click', () => {
+    if (ogqStickerBorder > MIN) { ogqStickerBorder--; render(); }
+  });
+  plus.addEventListener('click', () => {
+    if (ogqStickerBorder < MAX) { ogqStickerBorder++; render(); }
+  });
+  render();
+})();
 
 // ===== 공통: 프리셋 좌표로 박스 1칸 정사각 crop =====
 function cropBox(img, i) {
@@ -744,7 +890,8 @@ async function cropFromSlot(slotName, progStart, progEnd) {
 
   const cfg = MODES[mode];
   const total = ACTIVE_PRESET.coords.length;
-  const ICON = total - 1;                    // 원스톱: 맨 마지막 칸 = 아이콘
+  const ICON = total - 1;                    // 원스톱: 맨 마지막 칸(36) = 아이콘
+  const MAIN = total - 2;                     // 원스톱: 35번 = 오지큐 메인 전용 (카카오 제외)
   let seq = 0;
 
   for (let i = 0; i < total; i++) {
@@ -759,6 +906,9 @@ async function cropFromSlot(slotName, progStart, progEnd) {
       } else {
         extractedPngs.push({ name: `${safeBase}_아이콘.png`, blob: null, dataUrl: c.toDataURL('image/png'), isEmpty: true, isIcon: true, num: null, canvas: c });
       }
+    } else if (cfg.hasIcon && i === MAIN) {
+      // 35번 = 오지큐 메인 전용 칸 → 카카오 출력에서 제외 (미리보기엔 표시)
+      extractedPngs.push({ name: null, blob: null, dataUrl: c.toDataURL('image/png'), isEmpty, isIcon: false, isMain: true, num: null, canvas: c });
     } else {
       // 일반 시안. 미니 모드면 180×180 강제 리사이즈.
       const outCanvas = cfg.outSize ? resizeCanvas(c, cfg.outSize, cfg.outSize) : c;
@@ -791,14 +941,14 @@ async function cropAndScaleOGQ(progStart, progEnd) {
     const square = cropBox(img, i);
     const isEmpty = isCanvasEmpty(square);
 
-    // 640×640 풀스케일 (기존 방식 유지) → 8px 흰 테두리 → 740×640 가운데 배치
+    // 640×640 풀스케일 (기존 방식 유지) → 흰 테두리(ogqStickerBorder) → 740×640 가운데 배치
     const scaled = document.createElement('canvas');
     scaled.width = OGQ.scaleTo; scaled.height = OGQ.scaleTo;
     const sctx = scaled.getContext('2d');
     sctx.imageSmoothingEnabled = true;
     sctx.imageSmoothingQuality = 'high';
     sctx.drawImage(square, 0, 0, OGQ.scaleTo, OGQ.scaleTo);
-    const bordered = isEmpty ? scaled : addWhiteBorder(scaled, OGQ_BORDER.sticker, false);
+    const bordered = isEmpty ? scaled : addWhiteBorder(scaled, ogqStickerBorder, false);
 
     const out = document.createElement('canvas');
     out.width = OGQ.w; out.height = OGQ.h;
@@ -838,11 +988,11 @@ async function showResults() {
   resultCardEl.style.display = 'block';
 
   // ── 카카오 결과 ──
-  const hasKakao = extractedPngs.some(p => !p.isEmpty);
+  const hasKakao = extractedPngs.some(p => !p.isEmpty && !p.isMain);
   $('tab-kakao').style.display = hasKakao ? '' : 'none';
   if (hasKakao) {
     const cfg = MODES[mode];
-    const filled = extractedPngs.filter(p => !p.isEmpty && !p.isIcon).length;
+    const filled = extractedPngs.filter(p => !p.isEmpty && !p.isIcon && !p.isMain).length;
     const hasIcon = extractedPngs.some(p => p.isIcon && !p.isEmpty);
     const outPx = cfg.outSize || ACTIVE_PRESET.size;
     statsEl.innerHTML = `
@@ -856,9 +1006,9 @@ async function showResults() {
     gridEl.innerHTML = '';
     extractedPngs.forEach(p => {
       const cell = document.createElement('div');
-      cell.className = 'cell' + (p.isEmpty ? ' empty' : '') + (p.isIcon ? ' icon' : '');
-      const badge = p.isIcon ? '아이콘' : (p.num != null ? String(p.num).padStart(2, '0') : '–');
-      cell.title = p.isEmpty ? '빈 박스 (ZIP에서 제외)' : `${p.name}\n클릭하면 단독 다운로드`;
+      cell.className = 'cell' + (p.isEmpty ? ' empty' : '') + (p.isIcon ? ' icon' : '') + (p.isMain ? ' main' : '');
+      const badge = p.isIcon ? '아이콘' : p.isMain ? '메인↗' : (p.num != null ? String(p.num).padStart(2, '0') : '–');
+      cell.title = p.isMain ? '35번 = 오지큐 메인 전용 (카카오 ZIP 제외)' : (p.isEmpty ? '빈 박스 (ZIP에서 제외)' : `${p.name}\n클릭하면 단독 다운로드`);
       cell.innerHTML = `<img src="${p.dataUrl}" alt=""><span class="num">${badge}</span>`;
       if (!p.isEmpty && p.blob) cell.addEventListener('click', () => saveAs(p.blob, p.name));
       gridEl.appendChild(cell);
@@ -873,7 +1023,7 @@ async function showResults() {
   if (hasOgq) {
     const filled = ogqResults.filter(p => !p.isEmpty).length;
     $('ogqStats').innerHTML = `
-      <span>🟢 스티커 <strong>${filled}종</strong> · ${OGQ.w}×${OGQ.h}</span>
+      <span>🟢 스티커 <strong>${filled}종</strong> · ${OGQ.w}×${OGQ.h} · 테두리 ${ogqStickerBorder}px</span>
       <span>🖼️ 메인 <strong>${ogqMain ? '있음' : '없음'}</strong></span>
       <span>🔖 탭 <strong>${ogqTab ? '있음' : '없음'}</strong></span>
     `;
