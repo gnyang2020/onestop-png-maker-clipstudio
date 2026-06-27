@@ -2,6 +2,39 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<!-- 돈잘콘 임베드 전용 가드: 돈잘콘 안에서 열렸을 때만 작동. 직접 링크/외부 임베드 차단 (로컬 개발은 예외) -->
+<script>
+(function () {
+  var selfHost = location.hostname;
+  if (!selfHost || /^(localhost|127\.0\.0\.1|\[::1\])$/.test(selfHost)) return;
+  function parentOrigin() {
+    try {
+      var ao = location.ancestorOrigins;
+      if (ao && ao.length) return ao[0];
+      if (document.referrer) return new URL(document.referrer).origin;
+    } catch (e) {}
+    return '';
+  }
+  var inIframe = window.self !== window.top;
+  var pHost = '';
+  try { pHost = new URL(parentOrigin()).hostname; } catch (e) {}
+  var allowed = inIframe && (
+    /^donjalcon(-[a-z0-9-]+)?\.vercel\.app$/i.test(pHost) ||
+    /^(localhost|127\.0\.0\.1)$/.test(pHost)
+  );
+  if (allowed) return;
+  var dest = 'https://donjalcon.vercel.app/tools/clipstudio-png';
+  if (window.top === window.self) { location.replace(dest); return; }
+  try { window.stop(); } catch (e) {}
+  document.documentElement.innerHTML =
+    '<head><meta charset="utf-8"></head>' +
+    '<body style="margin:0;font-family:-apple-system,system-ui,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;background:#f5f5f5;color:#1a1a1a;text-align:center;padding:24px">' +
+    '<div><div style="font-size:18px;font-weight:800;margin-bottom:8px">돈잘콘 전용 도구입니다</div>' +
+    '<div style="font-size:14px;color:#666;margin-bottom:20px">원스톱 PNG 메이커는 돈잘콘에서 로그인 후 이용할 수 있어요.</div>' +
+    '<a href="' + dest + '" target="_top" style="display:inline-block;background:#1a1a1a;color:#fff;padding:12px 20px;border-radius:10px;font-weight:700;text-decoration:none;font-size:14px">돈잘콘에서 열기</a>' +
+    '</div></body>';
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>[쥐냥] 원스톱 png 메이커_클튜</title>
 <link rel="icon" type="image/png" href="favicon.png">
